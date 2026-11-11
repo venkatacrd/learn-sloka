@@ -43,5 +43,8 @@ htmlcov/
 .vscode/
 .idea/
 
+# Claude Code: personal settings stay local (shared .claude/settings.json is committed)
+.claude/settings.local.json
+
 # stray empty folder created by a system library at runtime
 pdf-extractor/{{HOMEBREW_PREFIX}}/

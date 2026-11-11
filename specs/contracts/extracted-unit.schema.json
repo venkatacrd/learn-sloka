@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "extracted-unit/1.2.0",
+  "title": "ExtractedUnit",
+  "description": "One line of extractor output JSONL. Produced by 001-pdf-extractor, consumed by 002-transliterator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "doc_id", "unit_id", "seq", "unit_type", "source", "text_raw", "text", "lines", "extraction", "quality"],
+  "properties": {
+    "schema_version": { "const": "1.2.0" },
+    "doc_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Slug of file name + first 8 hex of source sha256" },
+    "unit_id": { "type": "string", "description": "<doc_id>:<seq zero-padded to 6>, stable for same input+config" },
+    "seq": { "type": "integer", "minimum": 0, "description": "Reading order within the document" },
+    "unit_type": { "enum": ["verse", "prose", "heading", "speaker", "other"], "description": "speaker = a speaker line such as 'अर्जुन उवाच', always its own unit" },
+    "verse_ref": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["label", "normalized"],
+      "properties": {
+        "label": { "type": "string", "description": "As printed, e.g. '॥ २-४७ ॥'" },
+        "normalized": { "type": "string", "description": "ASCII digits joined by '.', e.g. '2.47'" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_name", "sha256", "page_start", "page_end"],
+      "properties": {
+        "file_name": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "page_start": { "type": "integer", "minimum": 1 },
+        "page_end": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "text_raw": { "type": "string", "description": "Exactly as extracted (text layer or OCR), no edits" },
+    "text": { "type": "string", "description": "NFC-normalized, cleaned per documented rules" },
+    "lines": { "type": "array", "items": { "type": "string" }, "description": "Cleaned text split into printed lines" },
+    "script": { "enum": ["devanagari", "latin", "mixed", "unknown"] },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "tool", "tool_version"],
+      "properties": {
+        "method": { "enum": ["text_layer", "ocr", "legacy_font_map"] },
+        "tool": { "type": "string" },
+        "tool_version": { "type": "string" }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "flags"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ocr_confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "flags": {
+          "type": "array",
+          "items": { "enum": ["low_ocr_confidence", "invalid_syllables", "legacy_font", "vedic_accents_present", "vedic_accents_possibly_lost", "crosses_page", "unnumbered_verse", "split_by_speaker", "ocr_disagreement", "needs_review"] }
+        }
+      }
+    }
+  }
+}

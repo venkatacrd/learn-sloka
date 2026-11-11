@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "romanized-unit/1.0.0",
+  "title": "RomanizedUnit",
+  "description": "One line of transliterator output JSONL. All ExtractedUnit fields are carried over unchanged, plus the fields below. Consumed by RAG ingestion.",
+  "type": "object",
+  "required": ["romanized_schema_version", "extracted", "romanized", "transliteration", "rag"],
+  "properties": {
+    "romanized_schema_version": { "const": "1.0.0" },
+    "extracted": { "$ref": "extracted-unit.schema.json", "description": "The input record, unchanged" },
+    "romanized": {
+      "type": "object",
+      "description": "Keys are scheme names. 'iast' is always present.",
+      "required": ["iast"],
+      "properties": {
+        "iast": { "type": "string" },
+        "iso15919": { "type": "string" },
+        "hk": { "type": "string" },
+        "itrans": { "type": "string" },
+        "slp1": { "type": "string" },
+        "ascii": { "type": "string", "description": "Lossy: IAST with diacritics removed, lowercased, punctuation collapsed" }
+      },
+      "additionalProperties": { "type": "string" }
+    },
+    "romanized_lines": {
+      "type": "object",
+      "description": "Same keys as 'romanized', each an array aligned 1:1 with extracted.lines",
+      "additionalProperties": { "type": "array", "items": { "type": "string" } }
+    },
+    "transliteration": {
+      "type": "object",
+      "required": ["engine", "engine_version", "roundtrip_ok", "skipped"],
+      "properties": {
+        "engine": { "type": "string" },
+        "engine_version": { "type": "string" },
+        "roundtrip_ok": { "type": "boolean", "description": "IAST -> Devanagari equals extracted.text" },
+        "skipped": { "type": "boolean", "description": "True when input was not Devanagari (fields copied as-is)" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "rag": {
+      "type": "object",
+      "description": "Ready-to-index view",
+      "required": ["id", "text_for_embedding", "text_for_keyword", "display_text", "citation", "metadata"],
+      "properties": {
+        "id": { "type": "string" },
+        "text_for_embedding": { "type": "string", "description": "IAST (default; configurable)" },
+        "text_for_keyword": { "type": "string", "description": "iast + devanagari, space-joined (ascii prepended when that scheme is enabled)" },
+        "display_text": { "type": "string", "description": "Devanagari followed by IAST" },
+        "citation": { "type": "string", "description": "e.g. 'gita.pdf p.34, verse 2.47'" },
+        "metadata": { "type": "object" }
+      }
+    }
+  }
+}

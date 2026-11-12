@@ -12,6 +12,7 @@ scripts that run them:
 | `pdf-extractor/` (feature 001) | `sanskrit-extract` | PDF → Devanagari units as JSONL (`extracted-unit` contract) |
 | `transliterator/` (feature 002) | `sanskrit-romanize` | extracted JSONL → IAST JSONL, readable `.txt`, optional one file per sloka |
 | `audio-splitter/` (feature 003) | `sloka-split` | chapter recitation MP3 → one MP3 per sloka + offline review page |
+| `recitation-coach/` (feature 004) | `recite-check`, `recite-serve`, `recite-setup` | local practice page: record a sloka, get pronunciation feedback |
 
 The projects never import each other. 001 and 002 are coupled **only** through the JSON schemas in
 `specs/contracts/` (002 bundles them at build time via hatch `force-include`; `contracts.py` falls back to the repo
@@ -53,6 +54,7 @@ From the repo root (run tools via `uv run --project <dir>`, not `cd`, so relativ
 ./convert-text.sh <jsonl-dir> [out=text-outs] [--pages 9-16] [--sloka-prefix 1_Ch_01_Complete_sloka_] [--sloka-no-source]
 ./convert.sh <pdf> [out=output] [--pages ...] [--sloka-prefix ...]     # both steps
 ./split-audio.sh "<chapter>.mp3" [out=audio-outs] -- --expected 47 --text text-outs/<doc>.romanized.jsonl
+./practice.sh [--text <jsonl>] [--audio audio-outs] [--port 8770]   # recitation coach page (model → ~/.recite-coach/)
 ./build-executables.sh [tool ...]            # PyInstaller one-file binaries → dist/ (rebuild after code changes)
 ```
 
@@ -89,6 +91,17 @@ lengths (`half_verse_end` auto/cadence/next) — on the reference recording the 
 still right, so counts alone don't prove cut correctness). Short pauses (< 0.75 × typical in-half-verse pause) are
 breaths inside a line. `splitter` writes parts with ID3 tags, `.splits.json`, Audacity `.labels.txt`, and
 `review.py`'s self-contained `.review.html` (per-file start/end playback, marks, export).
+
+**Recitation coach** (`recitation-coach/`, feature 004): `model` runs the Su-śrotā Sanskrit ASR (ONNX INT8, pinned
+revision + SHA-256, onnxruntime only) and keeps a time and probability per output character → `normalize` puts
+expected and heard Devanagari in one comparison form while tracking which word/char each letter came from (sandhi
+join, class-nasal/anusvāra, म्/ं before non-class consonants) → `compare` does a weighted Levenshtein (vowel sign vs
+consonant costs more), splits differences per akṣara, classifies the kind, applies accepted variants (held final
+vowel at line end, र्य→र्ज), sets confidence (`REPORT_MIN_PROB` 0.4, dropped visarga always unsure) → `feedback`
+builds IAST sentences and JSON → `server` (stdlib, 127.0.0.1 only, Host check) serves `static/index.html`, which
+records with MediaRecorder and sends 16 kHz WAV. `library` splits each printed half-verse into its two recited lines
+(pādas) by syllables. Thresholds and variants were tuned on the instructor's 47 slokas (≤ 1 false finding per sloka)
+and the author's takes in `audio-input-test/` — re-measure with `tests/test_audio.py` after changing them.
 
 ## Data and outputs
 

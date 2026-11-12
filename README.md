@@ -21,6 +21,7 @@ Every command empties its output folder before it runs and refuses to empty a fo
 | `./extract-pdf.sh <pdf-or-folder> [out] [--pages 9-24]` | PDF reader ([pdf-extractor/](pdf-extractor/)) | PDFs → Devanagari JSONL (`pdf-outs/`) |
 | `./convert-text.sh <jsonl-or-folder> [out] [--pages 9-24]` | Text converter ([transliterator/](transliterator/)) | extracted JSONL → IAST JSONL + readable `.txt` (`text-outs/`) |
 | `./split-audio.sh <mp3-or-folder> [out]` | MP3 splitter ([audio-splitter/](audio-splitter/)) | chapter MP3 → one MP3 per sloka (`audio-outs/`) |
+| `./practice.sh` | Recitation coach ([recitation-coach/](recitation-coach/)) | local page: play the instructor, record yourself, get pronunciation feedback |
 
 **One file per sloka:** add `--sloka-prefix <name>` to `convert-text.sh` or `convert.sh` to also write
 `slokas/<name>01.txt`, `<name>02.txt`, … (number = verse number, padded like the audio files; Devanagari lines, a blank
@@ -115,7 +116,7 @@ Features:
 - [specs/001-pdf-extractor/](specs/001-pdf-extractor/) – read PDFs, extract Devanagari text faithfully, segment into verses
 - [specs/002-transliterator/](specs/002-transliterator/) – convert Devanagari to romanized IAST (other schemes opt-in), verify losslessness
 - [specs/003-audio-splitter/](specs/003-audio-splitter/) – split a chanted chapter MP3 into one MP3 per sloka
-- [specs/004-recitation-coach/](specs/004-recitation-coach/brainstorm.md) – *idea, parked*: record yourself reciting a sloka and get pronunciation feedback
+- [specs/004-recitation-coach/](specs/004-recitation-coach/spec.md) – record yourself reciting a sloka and get pronunciation feedback (offline, one Mac); increment 1 (practice page) built, increment 2 (family profiles, history) next; background in [brainstorm.md](specs/004-recitation-coach/brainstorm.md)
 
 ## Sample data
 

@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sloka Practice</title>
+<style>
+:root {
+  --bg: #f6f4ef; --card: #ffffff; --ink: #1d1b18; --muted: #6d675d; --line: #e4dfd5;
+  --accent: #8a4b14; --accent-ink: #ffffff; --ok: #2f7d32; --bad: #b3261e; --bad-bg: #fbe9e7;
+  --unsure: #8a6d00; --unsure-bg: #fff6d6; --rec: #c62828; --focus: #e0a060;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #161513; --card: #211f1c; --ink: #ece8e1; --muted: #a39d92; --line: #36332e;
+          --accent: #e0a060; --accent-ink: #1d1b18; --ok: #7cc47f; --bad: #f2867e; --bad-bg: #3a2220;
+          --unsure: #e3c25a; --unsure-bg: #352d14; --rec: #ef5350; --focus: #e0a060; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 16px 16px 64px; }
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+h1 { font-size: 20px; margin: 0; }
+.picker { display: flex; gap: 6px; align-items: center; }
+button, select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+                 border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin: 12px 0; }
+.deva { font-family: "Kohinoor Devanagari", "Devanagari Sangam MN", "Noto Sans Devanagari", "Nirmala UI", sans-serif; }
+.line { display: grid; grid-template-columns: 28px 1fr; gap: 0 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.line:last-child { border-bottom: 0; }
+.num { color: var(--muted); font-size: 13px; padding-top: 6px; text-align: right; }
+.dev { font-size: 24px; line-height: 1.5; }
+.iast { color: var(--muted); font-size: 15px; }
+.speaker .dev { font-size: 18px; font-style: italic; color: var(--muted); }
+.w { border-radius: 4px; padding: 0 2px; }
+.w.finding { background: var(--bad-bg); color: var(--bad); text-decoration: underline wavy; text-underline-offset: 5px; }
+.w.unsure { background: var(--unsure-bg); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.recbtn { background: var(--rec); color: #fff; border-color: var(--rec); font-weight: 600; min-width: 120px; }
+.recbtn.on { animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .65; } }
+.meter { flex: 1 1 120px; min-width: 100px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.meter > div { height: 100%; width: 0; background: var(--ok); transition: width .08s; }
+.timer { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 44px; }
+.status { color: var(--muted); margin-top: 8px; min-height: 1.5em; }
+.status.err { color: var(--bad); }
+.score { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.score b { font-size: 32px; }
+.findings { list-style: none; padding: 0; margin: 12px 0 0; }
+.findings li { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center;
+               padding: 10px 0; border-top: 1px solid var(--line); }
+.findings li.unsure .msg { color: var(--muted); }
+.tag { font-size: 12px; color: var(--muted); margin-right: 6px; white-space: nowrap; }
+.play { display: flex; gap: 6px; }
+.play button { padding: 4px 10px; font-size: 14px; }
+details { margin-top: 12px; color: var(--muted); }
+.good { color: var(--ok); font-weight: 600; }
+.hidden { display: none !important; }
+.hint { color: var(--muted); font-size: 14px; }
+@media (max-width: 560px) { .dev { font-size: 20px; } .findings li { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Sloka recitation practice</h1>
+    <div class="picker">
+      <button id="prev" aria-label="Previous sloka">‹</button>
+      <select id="sloka" aria-label="Sloka"></select>
+      <button id="next" aria-label="Next sloka">›</button>
+    </div>
+  </header>
+
+  <section class="card" aria-label="Sloka text">
+    <div id="text"></div>
+    <div class="controls" style="margin-top:12px">
+      <button id="playInstructor">▶ Play instructor</button>
+      <span class="hint">Listen first, then record yourself.</span>
+    </div>
+    <audio id="instructor" preload="metadata"></audio>
+  </section>
+
+  <section class="card" aria-label="Recording">
+    <div class="controls">
+      <button id="rec" class="recbtn">● Record</button>
+      <span class="timer" id="timer">0:00</span>
+      <div class="meter" aria-hidden="true"><div id="level"></div></div>
+    </div>
+    <div class="controls" style="margin-top:10px">
+      <button id="playMine" disabled>▶ My recording</button>
+      <button id="submit" class="primary" disabled>Submit for feedback</button>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <audio id="mine"></audio>
+  </section>
+
+  <section class="card hidden" id="feedback" aria-label="Feedback">
+    <div class="score"><b id="score"></b><span id="summary"></span></div>
+    <ul class="findings" id="list"></ul>
+    <label class="hint" id="unsureToggle"><input type="checkbox" id="showUnsure"> show findings the app is unsure about (<span id="unsureCount">0</span>)</label>
+    <details><summary>What the app heard</summary><p class="deva" id="heard"></p></details>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const state = { slokas: [], n: null, wav: null, result: null, recorder: null, stream: null, timer: null };
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+function status(msg, err) { $("status").textContent = msg || ""; $("status").classList.toggle("err", !!err); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function md(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*(.+?)\*/g, "<i>$1</i>"); }
+
+// ---------- sloka list and text ----------
+async function init() {
+  state.slokas = await (await fetch("/api/slokas")).json();
+  const sel = $("sloka");
+  for (const s of state.slokas) {
+    const o = document.createElement("option");
+    o.value = s.number; o.textContent = "Sloka " + s.number + (s.available ? "" : " (no audio)");
+    sel.appendChild(o);
+  }
+  const saved = parseInt(store.get("sloka") || "", 10);
+  const first = state.slokas.find(s => s.number === saved) || state.slokas.find(s => s.available) || state.slokas[0];
+  if (first) await show(first.number);
+}
+
+async function show(n) {
+  state.n = n; store.set("sloka", String(n)); $("sloka").value = String(n);
+  resetRecording(); $("feedback").classList.add("hidden");
+  const s = await (await fetch("/api/sloka/" + n)).json();
+  const box = $("text"); box.innerHTML = "";
+  s.lines.forEach((ln, li) => {
+    const d = document.createElement("div");
+    d.className = "line" + (ln.speaker ? " speaker" : "");
+    const words = ln.dev.split(" "), iw = ln.iast.split(" ");
+    d.innerHTML = '<div class="num">' + (ln.speaker ? "" : (s.lines.slice(0, li + 1).filter(x => !x.speaker).length)) + "</div>" +
+      '<div><div class="dev deva">' + words.map((w, i) => '<span class="w" data-l="' + li + '" data-p="' + i + '">' + esc(w) + "</span>").join(" ") +
+      '</div><div class="iast">' + iw.map((w, i) => '<span class="w" data-l="' + li + '" data-p="' + i + '">' + esc(w) + "</span>").join(" ") + "</div></div>";
+    box.appendChild(d);
+  });
+  $("instructor").src = "/audio/" + n;
+  $("playInstructor").disabled = !s.available;
+  $("rec").disabled = !s.available;
+  const i = state.slokas.findIndex(x => x.number === n);
+  $("prev").disabled = i <= 0; $("next").disabled = i >= state.slokas.length - 1;
+  status(s.available ? "" : "No instructor audio for this sloka.");
+}
+
+$("sloka").onchange = e => show(parseInt(e.target.value, 10));
+$("prev").onclick = () => { const i = state.slokas.findIndex(x => x.number === state.n); if (i > 0) show(state.slokas[i - 1].number); };
+$("next").onclick = () => { const i = state.slokas.findIndex(x => x.number === state.n); if (i < state.slokas.length - 1) show(state.slokas[i + 1].number); };
+
+// ---------- playback ----------
+let stopAt = null, stopEl = null;
+function stopAll() { for (const a of [$("instructor"), $("mine")]) a.pause(); stopAt = null; }
+function playSpan(el, span) {
+  stopAll();
+  const go = () => { el.currentTime = Math.max(0, span[0] - 0.15); stopAt = span[1] + 0.25; stopEl = el; el.play(); };
+  if (el.readyState >= 1) go(); else { el.addEventListener("loadedmetadata", go, { once: true }); el.load(); }
+}
+for (const el of [$("instructor"), $("mine")]) {
+  el.addEventListener("timeupdate", () => { if (stopAt !== null && stopEl === el && el.currentTime >= stopAt) { el.pause(); stopAt = null; } });
+  el.addEventListener("play", () => updateButtons());
+  el.addEventListener("pause", () => updateButtons());
+  el.addEventListener("ended", () => updateButtons());
+}
+function updateButtons() {
+  $("playInstructor").textContent = $("instructor").paused ? "▶ Play instructor" : "■ Stop";
+  $("playMine").textContent = $("mine").paused ? "▶ My recording" : "■ Stop";
+}
+$("playInstructor").onclick = () => { const a = $("instructor"); if (a.paused) { stopAll(); a.currentTime = 0; a.play(); } else a.pause(); };
+$("playMine").onclick = () => { const a = $("mine"); if (a.paused) { stopAll(); a.currentTime = 0; a.play(); } else a.pause(); };
+
+// ---------- recording: MediaRecorder -> decode -> 16 kHz mono -> WAV ----------
+function resetRecording() {
+  state.wav = null; $("playMine").disabled = true; $("submit").disabled = true;
+  $("timer").textContent = "0:00"; $("level").style.width = "0";
+}
+
+async function startRecording() {
+  stopAll();
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({ audio: {
+      channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) {
+    status("Microphone not available — allow microphone access for this page and try again.", true); return;
+  }
+  resetRecording(); $("feedback").classList.add("hidden");
+  const chunks = [];
+  const rec = new MediaRecorder(state.stream);
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => finishRecording(new Blob(chunks, { type: rec.mimeType || "audio/webm" }));
+  state.recorder = rec; rec.start();
+  // level meter + timer
+  const ctx = new AudioContext(), an = ctx.createAnalyser(); an.fftSize = 1024;
+  ctx.createMediaStreamSource(state.stream).connect(an);
+  const buf = new Float32Array(an.fftSize), t0 = performance.now();
+  state.timer = setInterval(() => {
+    an.getFloatTimeDomainData(buf);
+    let peak = 0; for (const v of buf) peak = Math.max(peak, Math.abs(v));
+    $("level").style.width = Math.min(100, peak * 140) + "%";
+    const s = Math.floor((performance.now() - t0) / 1000);
+    $("timer").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }, 80);
+  state.meterCtx = ctx;
+  $("rec").textContent = "■ Stop"; $("rec").classList.add("on");
+  status("Recording… recite the sloka, then press Stop.");
+}
+
+function stopRecording() {
+  clearInterval(state.timer); $("level").style.width = "0";
+  if (state.recorder && state.recorder.state !== "inactive") state.recorder.stop();
+  if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+  if (state.meterCtx) state.meterCtx.close();
+  $("rec").textContent = "● Record again"; $("rec").classList.remove("on");
+}
+
+async function finishRecording(blob) {
+  status("Preparing the recording…");
+  try {
+    const ctx = new AudioContext();
+    const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
+    ctx.close();
+    const rate = 16000, len = Math.max(1, Math.ceil(decoded.duration * rate));
+    const off = new OfflineAudioContext(1, len, rate);
+    const src = off.createBufferSource(); src.buffer = decoded; src.connect(off.destination); src.start();
+    const pcm = (await off.startRendering()).getChannelData(0);
+    state.wav = wavBlob(pcm, rate);
+    $("mine").src = URL.createObjectURL(state.wav);
+    $("playMine").disabled = false; $("submit").disabled = false;
+    status("Recorded " + decoded.duration.toFixed(1) + " s. Listen back or submit for feedback.");
+  } catch (e) {
+    status("Could not read the recording (" + e.message + ").", true);
+  }
+}
+
+function wavBlob(pcm, rate) {
+  const b = new ArrayBuffer(44 + pcm.length * 2), v = new DataView(b);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + pcm.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data");
+  v.setUint32(40, pcm.length * 2, true);
+  for (let i = 0; i < pcm.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 0x7fff, true);
+  return new Blob([b], { type: "audio/wav" });
+}
+
+$("rec").onclick = () => (state.recorder && state.recorder.state === "recording") ? stopRecording() : startRecording();
+
+// ---------- submit + feedback ----------
+$("submit").onclick = async () => {
+  if (!state.wav) return;
+  $("submit").disabled = true; status("Checking your recitation…");
+  try {
+    const r = await fetch("/api/check/" + state.n, { method: "POST", body: state.wav, headers: { "Content-Type": "audio/wav" } });
+    const out = await r.json();
+    if (!r.ok) throw new Error(out.error || r.statusText);
+    state.result = out; renderFeedback(); status("");
+  } catch (e) {
+    status("Checking failed: " + e.message, true);
+  } finally { $("submit").disabled = false; }
+};
+$("showUnsure").onchange = () => renderFeedback();
+
+function renderFeedback() {
+  const out = state.result; if (!out) return;
+  const showUnsure = $("showUnsure").checked;
+  document.querySelectorAll("#text .w").forEach(el => el.className = "w");
+  for (const ln of out.lines) for (const w of ln.words) {
+    if (w.status === "ok" || (w.status === "unsure" && !showUnsure)) continue;
+    document.querySelectorAll('#text .w[data-l="' + ln.index + '"][data-p="' + w.pos + '"]').forEach(el => el.classList.add(w.status));
+  }
+  const rep = out.findings.filter(f => f.reported), uns = out.findings.filter(f => !f.reported);
+  $("score").textContent = Math.round(out.score) + "%";
+  $("summary").innerHTML = rep.length ? rep.length + (rep.length === 1 ? " thing" : " things") + " to work on"
+                                      : '<span class="good">No mistakes found — well done!</span>';
+  $("unsureCount").textContent = uns.length;
+  $("unsureToggle").classList.toggle("hidden", !uns.length);
+  const list = $("list"); list.innerHTML = "";
+  for (const f of rep.concat(showUnsure ? uns : [])) {
+    const li = document.createElement("li"); if (!f.reported) li.className = "unsure";
+    const where = f.pada ? "line " + f.pada : "speaker line";
+    li.innerHTML = '<div><span class="tag">' + where + (f.reported ? "" : " · unsure") + '</span><span class="msg">' + md(f.message) + "</span></div>";
+    const play = document.createElement("div"); play.className = "play";
+    if (f.teacher_span) { const b = document.createElement("button"); b.textContent = "▶ Instructor"; b.onclick = () => playSpan($("instructor"), f.teacher_span); play.appendChild(b); }
+    if (f.span) { const b = document.createElement("button"); b.textContent = "▶ You"; b.onclick = () => playSpan($("mine"), f.span); play.appendChild(b); }
+    li.appendChild(play); list.appendChild(li);
+  }
+  $("heard").textContent = out.heard;
+  $("feedback").classList.remove("hidden");
+  $("feedback").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+init().catch(e => status("Could not load the slokas: " + e.message, true));
+</script>
+</body>
+</html>

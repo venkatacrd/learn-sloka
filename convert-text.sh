@@ -2,13 +2,15 @@
 # Text converter (feature 002): extracted Devanagari JSONL → romanized IAST, with a loss check.
 #
 #   ./convert-text.sh <jsonl-or-folder> [output-dir] [--pages 9-24] [--sloka-prefix NAME_] [-- extra options]
+#   ./convert-text.sh output/pdf/<pdf name>/extracted      → output/pdf/<pdf name>/romanized/
 #
 # --pages: convert only units from these PDF pages (5, 1-10, 1,3-4 or 10-).
 # --sloka-prefix NAME_: also write one file per sloka, <output>/slokas/NAME_01.txt, NAME_02.txt, …
 #   (number = verse number; Devanagari lines, blank line, IAST lines). --sloka-files does the same with "sloka_".
 # --sloka-no-source: sloka files hold only the IAST lines (no Devanagari source text).
-# Input: output of ./extract-pdf.sh (default folder pdf-outs/).
-# The output folder (default: text-outs/ next to this script) is emptied before every run.
+# Input: output of ./extract-pdf.sh (output/pdf/<pdf name>/extracted/).
+# Output: the folder romanized/ next to an …/extracted input folder, otherwise output/pdf/<input name>/romanized/,
+#   unless an output folder is given. The output folder is emptied before every run.
 # Output per document: <doc>.romanized.jsonl / .romanized.report.json / .romanized.txt (readable)
 # Exit code is non-zero if an input failed or a unit's IAST does not convert back to the same Devanagari.
 # Every unit is also romanized by a second engine (aksharamukha); disagreements are listed for review.
@@ -31,10 +33,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 PAGE_OPT=(); [[ -n "$PAGES" ]] && PAGE_OPT=(--pages "$PAGES")
-if [[ ${#POS[@]} -lt 1 ]]; then sed -n '2,14p' "$0"; exit 2; fi
+if [[ ${#POS[@]} -lt 1 ]]; then sed -n '2,16p' "$0"; exit 2; fi
 [[ -e "${POS[0]}" ]] || { echo "error: ${POS[0]} not found" >&2; exit 2; }
 IN="$(cd "$(dirname "${POS[0]}")" && pwd)/$(basename "${POS[0]}")"
-OUT="${POS[1]:-$ROOT/text-outs}"
+if [[ -d "$IN" && "$(basename "$IN")" == extracted ]]; then
+  DEFAULT_OUT="$(dirname "$IN")/romanized"
+else
+  NAME="$(basename "$IN")"; NAME="${NAME%.jsonl}"
+  DEFAULT_OUT="$ROOT/output/pdf/$NAME/romanized"
+fi
+OUT="${POS[1]:-$DEFAULT_OUT}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 

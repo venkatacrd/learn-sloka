@@ -30,6 +30,8 @@ and the gold files (Q1b).
 | EX-T20 | Colophon spans, `इति` verses, Latin lines, lone titles; reph before `ं`; stricter syllable check; OCR check on Devanagari only | FR-EX-05, 09, 12, 20 | AC-EX-24 | T19 |
 | EX-T21 | Header/footer detection: separator rules, odd/even repeats, small-font margin repeats | FR-EX-08 | AC-EX-25, AC-EX-27 | T20 |
 | EX-T22 | Page selection: open-ended ranges, missing pages reported, `pages_selected` | FR-EX-21 | AC-EX-26 | T21 |
+| EX-T23 | Heading centring against the odd/even text frame (titles on odd pages of the reference book were read into verse 1) | FR-EX-09 | AC-EX-28 | T19 |
+| EX-T24 | Speaker lines with `उवाच` joined by sandhi (`भगवानुवाच`) | FR-EX-09 | AC-EX-29 | T23 |
 | EX-T16 | `ocr/doctor.py` install check, `ocr/preprocess.py`, OCR cache, `--dry-run`; offline guard test | FR-EX-04, 17, 18, NFR-EX-05 | AC-EX-13, 14, 15, 16 | T07, T13 |
 
 Definition of done for feature 001: all AC-EX-xx tests green, traceability table below complete.

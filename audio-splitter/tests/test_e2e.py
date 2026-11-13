@@ -6,7 +6,7 @@ import pytest
 
 from sloka_split.splitter import split_path
 
-REFERENCE = Path(__file__).resolve().parents[2] / "1_Ch 01 Complete.mp3"
+REFERENCE = Path(__file__).resolve().parents[2] / "input" / "mp3" / "1_Ch 01 Complete.mp3"
 
 
 @pytest.mark.e2e

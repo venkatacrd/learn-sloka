@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # PDF reader (feature 001): Sanskrit PDF(s) → Devanagari units as JSONL, with a loss check.
 #
-#   ./extract-pdf.sh <pdf-or-folder> [output-dir] [--pages 9-24] [-- extra options, e.g. --force-ocr]
+#   ./extract-pdf.sh [<pdf-or-folder>] [output-dir] [--pages 9-24] [-- extra options, e.g. --force-ocr]
 #
+# Input: PDFs live in input/pdf/. A bare file name is looked up there; no input = every PDF in input/pdf/.
+# Output: output/pdf/<pdf name>/extracted/ (…/<pdf name>_pages-9-24/extracted/ with --pages), one folder per PDF,
+#   unless an output folder is given. The output folder is emptied before every run.
 # --pages: 5, 1-10, 1,3-4 or 10- (to the last page). Pages the PDF does not have are reported.
 # Running headers/footers (including alternating book headers and lines outside the page's separator rules)
 # and page numbers are left out; each removed line is listed in the report.
-# The output folder (default: pdf-outs/ next to this script) is emptied before every run.
 # Output per PDF: <doc>.jsonl (one unit per line) and <doc>.report.json
 # Exit code is non-zero if a file failed, a PDF line was not accounted for, or a legacy-font code is unknown.
 # When Tesseract with the Sanskrit model is installed, every unit is also read by OCR and compared
 # (disagreements are listed for review; they do not fail the run).
-# Next step: ./convert-text.sh <output-dir>
+# Next step: ./convert-text.sh output/pdf/<pdf name>/extracted   (or ./convert.sh for both steps)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -26,10 +28,28 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 PAGE_OPT=(); [[ -n "$PAGES" ]] && PAGE_OPT=(--pages "$PAGES")
-if [[ ${#POS[@]} -lt 1 ]]; then sed -n '2,15p' "$0"; exit 2; fi
-[[ -e "${POS[0]}" ]] || { echo "error: ${POS[0]} not found" >&2; exit 2; }
-IN="$(cd "$(dirname "${POS[0]}")" && pwd)/$(basename "${POS[0]}")"
-OUT="${POS[1]:-$ROOT/pdf-outs}"
+INBOX="$ROOT/input/pdf"
+if [[ ${#POS[@]} -lt 1 ]]; then
+  [[ -d "$INBOX" ]] || { sed -n '2,17p' "$0"; exit 2; }
+  POS=("$INBOX")
+fi
+ARG="${POS[0]}"
+[[ ! -e "$ARG" && -e "$INBOX/$ARG" ]] && ARG="$INBOX/$ARG"
+[[ -e "$ARG" ]] || { echo "error: ${POS[0]} not found (PDFs go in input/pdf/)" >&2; exit 2; }
+
+# A folder and no output folder: one run per PDF, each into its own output/pdf/<name>/ folder.
+if [[ -d "$ARG" && ${#POS[@]} -lt 2 ]]; then
+  shopt -s nullglob; PDFS=("$ARG"/*.[pP][dD][fF]); shopt -u nullglob
+  [[ ${#PDFS[@]} -gt 0 ]] || { echo "error: no PDF in $ARG" >&2; exit 2; }
+  ALL=0
+  for f in "${PDFS[@]}"; do
+    "$0" "$f" ${PAGE_OPT[@]+"${PAGE_OPT[@]}"} -- ${EXTRA[@]+"${EXTRA[@]}"} || ALL=1
+  done
+  exit $ALL
+fi
+IN="$(cd "$(dirname "$ARG")" && pwd)/$(basename "$ARG")"
+NAME="$(basename "$IN")"; NAME="${NAME%.*}"; [[ -n "$PAGES" ]] && NAME+="_pages-${PAGES//,/_}"
+OUT="${POS[1]:-$ROOT/output/pdf/$NAME/extracted}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 

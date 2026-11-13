@@ -23,7 +23,7 @@ class Profile(BaseModel):
     # a line ending with this pattern closes a verse; group "num" = verse number (optional)
     verse_end: str = r"(?:॥\s*(?P<num>[०-९0-9]+(?:[.\-–][०-९0-9]+)*)\s*॥?|(?P<ascii>\b\d+\.\d+)|॥)\s*$"
     # no \b in Devanagari patterns: vowel signs are not "word" characters for `re`
-    speaker: str = r"(?:^|\s)उवाच\s*[-:।]?\s*$"
+    speaker: str = r"(?:(?:^|\s)उ|ु)वाच\s*[-:।]?\s*$"  # also joined by sandhi: भगवानुवाच
     colophon_start: str = r"^(?:॥\s*)?(?:ॐ\s+)?(?:तत्सदिति|इति)(?:\s|$)"  # may continue on following lines
     colophon_end: str = r"[अऽ]ध्यायः\s*॥?\s*$"
     title_max_words: int = 3  # a lone short line outside a verse is a title
@@ -32,7 +32,8 @@ class Profile(BaseModel):
     rule_zone: float = 0.12  # top/bottom share of page height searched for header/footer separator rules
     small_font_ratio: float = 0.8  # a margin line this much smaller than body text ...
     small_font_min_pages: int = 2  # ... and repeated on this many pages is a running header/footer
-    centered_tolerance: float = 0.06  # |line centre − page centre| / page width
+    centered_tolerance: float = 0.06  # |line centre − text-frame centre| / page width
+    frame_min_lines: int = 10  # wide lines needed (per odd / even pages) to trust the text frame; else page centre
     heading_max_width: float = 0.38  # headings are narrow; verse lines are wider (measured on the Gita PDFs)
     toc_entry: str = r"\.{4,}|…{2,}"  # leader dots of a table-of-contents line
     # an empty gap taller than factor × line height starts a new block (separates stray text from a verse)

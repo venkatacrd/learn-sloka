@@ -23,7 +23,7 @@ audio-splitter/
     splitter.py    # files in/out, names, tags, reports, coverage check, clean           (FR-AS-01, 07..11)
     cli.py         # thin typer CLI                                                      (FR-AS-12)
   tests/  synth.py (synthetic chant generator) + test_*.py
-split-audio.sh     # (repo root) clean + split into audio-outs/                           (FR-AS-13)
+split-audio.sh     # (repo root) input/mp3/<x>.mp3 → clean + split into output/mp3/<x>/      (FR-AS-13)
 ```
 
 ## Flow per file

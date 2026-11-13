@@ -14,3 +14,5 @@
 | AS-T10 | README (package + root) | – | – | T09 |
 | AS-T11 | Fix: half-verse may end on the line after the cadence (user report: cut at end of line 3); auto-detect from pauses, `--half-verse-end` override, breath-split lines | FR-AS-04, 12 | AC-AS-11, 12, 13 | T05 |
 | AS-T12 | Review page + `--text` | FR-AS-14, 15 | AC-AS-14 | T11 |
+| AS-T13 | Repository layout: `split-audio.sh` reads `input/mp3/`, writes `output/mp3/<stem>/` | FR-AS-13 | manual run | T09 |
+| AS-T14 | `--name` for output file names (e.g. `CH11_sloka_01.mp3`) | FR-AS-08, 12 | AC-AS-15 | T09 |

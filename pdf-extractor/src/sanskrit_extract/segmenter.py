@@ -30,11 +30,32 @@ def normalize_ref(label: str) -> str:
 class _Ctx:
     width: float
     body_size: float
+    centre: float  # x centre of the text frame (books mirror margins on odd / even pages)
 
 
 def _body_size(pages: list[PageResult]) -> float:
     sizes = Counter(round(ln.size) for p in pages for ln in p.lines if ln.size > 0)
     return float(sizes.most_common(1)[0][0]) if sizes else 0.0
+
+
+def _frame_centres(pages: list[PageResult], profile: Profile) -> dict[int, float]:
+    """Text-frame centre for odd and even pages: most common left edge to 95th-percentile right edge of wide lines."""
+    out: dict[int, float] = {}
+    for parity in (0, 1):
+        wide = [
+            ln
+            for p in pages
+            if p.number % 2 == parity
+            for ln in p.lines
+            if ln.bbox[2] - ln.bbox[0] > profile.heading_max_width * p.width
+        ]
+        if len(wide) < profile.frame_min_lines:
+            continue
+        left = Counter(round(ln.bbox[0]) for ln in wide).most_common(1)[0][0]
+        rights = sorted(ln.bbox[2] for ln in wide)
+        right = rights[min(len(rights) - 1, int(0.95 * len(rights)))]
+        out[parity] = (left + right) / 2
+    return out
 
 
 class Segmenter:
@@ -54,14 +75,15 @@ class Segmenter:
         if "।" in ln.text:
             return False
         x0, _, x1, _ = ln.bbox
-        centred = abs((x0 + x1) / 2 - ctx.width / 2) <= self.p.centered_tolerance * ctx.width
+        centred = abs((x0 + x1) / 2 - ctx.centre) <= self.p.centered_tolerance * ctx.width
         narrow = (x1 - x0) <= self.p.heading_max_width * ctx.width
         other_size = ln.size > 0 and ctx.body_size > 0 and abs(round(ln.size) - ctx.body_size) >= 1
         return narrow and (centred or other_size)
 
     def segment(self, pages: list[PageResult]) -> list[Unit]:
         body = _body_size(pages)
-        ctx_by_page = {p.number: _Ctx(p.width, body) for p in pages}
+        frames = _frame_centres(pages, self.p)
+        ctx_by_page = {p.number: _Ctx(p.width, body, frames.get(p.number % 2, p.width / 2)) for p in pages}
         units: list[Unit] = []
         pending: list[Line] = []
         held: list[Line] = []  # speaker lines found inside an open verse

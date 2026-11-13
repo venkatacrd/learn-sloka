@@ -466,7 +466,7 @@ def test_AC_EX_26_page_selection(four_pages: Path, tmp_path: Path) -> None:
         assert runner.invoke(cli.app, [str(four_pages), "-o", str(tmp_path / "o3"), "--pages", bad]).exit_code == 2
 
 
-BOOK = Path(__file__).resolve().parents[3] / "SrimadBhagawadGeeta_Sanskrit.pdf"
+BOOK = Path(__file__).resolve().parents[3] / "input" / "pdf" / "SrimadBhagawadGeeta_Sanskrit.pdf"
 
 
 @pytest.mark.skipif(not BOOK.exists(), reason="reference book not present")
@@ -479,3 +479,17 @@ def test_AC_EX_27_reference_book_running_headers(tmp_path: Path) -> None:
     assert not any(t.endswith("॥ अर्जुनविषादयोगः ॥") or t.endswith("॥ साङ्ख्ययोगः ॥") for t in texts)
     assert sum(1 for t in texts if "परमात्मने नमः" in t) == 2  # chapters 1 and 2 open with it
     assert doc.report["coverage"]["unaccounted"] == 0
+
+
+@pytest.mark.skipif(not BOOK.exists(), reason="reference book not present")
+def test_AC_EX_28_reference_book_chapter_titles_not_in_verse_1() -> None:
+    from sanskrit_extract.pages import PageSelection
+
+    openings = "9,17,30,37,44,49,57,62,67,73,80,94,98,104,109,113,117,122"  # first page of chapters 1-18
+    doc = extract(BOOK, Config(), _no_ocr, PageSelection.parse(openings))
+    firsts = [u for u in doc.units if u["unit_type"] == "verse" and (u.get("verse_ref") or {}).get("normalized") == "1"]
+    assert len(firsts) == 18
+    for u in firsts:
+        assert not any(ln.rstrip().endswith("योगः") for ln in u["lines"]), u["lines"][0]
+    headings = {u["text"].strip() for u in doc.units if u["unit_type"] == "heading"}
+    assert {"अर्जुनविषादयोगः", "साङ्ख्ययोगः", "कर्मयोगः", "मोक्षसन्न्यासयोगः"} <= headings

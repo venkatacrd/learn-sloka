@@ -17,8 +17,10 @@ check_app = typer.Typer(add_completion=False, help="Check one recitation of a sl
 setup_app = typer.Typer(add_completion=False, help="Download and verify the speech model (once; needs internet).")
 serve_app = typer.Typer(add_completion=False, help="Start the local practice page.")
 
-TEXT_HELP = "The converter's <doc>.romanized.jsonl for the chapter."
-AUDIO_HELP = "Folder with the instructor's <name>_sloka_NN.mp3 files (from split-audio)."
+TEXT_HELP = "The converter's <doc>.romanized.jsonl: one chapter or a whole book."
+AUDIO_HELP = (
+    "Instructor audio (split-audio): a folder of <name>_sloka_NN.mp3, or output/mp3/ with one folder per chapter."
+)
 
 
 def _version(value: bool) -> None:
@@ -42,6 +44,7 @@ def _open(text: Path, audio: Path | None) -> Coach:
 def check(
     recording: Path = typer.Argument(..., exists=True, dir_okay=False, help="WAV / MP3 / FLAC recording."),
     sloka: int = typer.Option(..., "--sloka", min=1),
+    chapter: int | None = typer.Option(None, "--chapter", min=1, help="Chapter (needed when the text has several)."),
     text: Path = typer.Option(..., "--text", exists=True, help=TEXT_HELP),
     audio: Path | None = typer.Option(None, "--audio", help=AUDIO_HELP),
     as_json: bool = typer.Option(False, "--json", help="Print the feedback as JSON."),
@@ -50,10 +53,14 @@ def check(
 ) -> None:
     """Exit 0 = no mistakes reported, 1 = mistakes reported, 2 = usage / IO error."""
     coach = _open(text, audio)
+    ch = chapter if chapter is not None else coach.only_chapter
+    if ch is None:
+        typer.echo(f"error: {text.name} has chapters {', '.join(map(str, coach.chapters))}: add --chapter", err=True)
+        raise typer.Exit(2)
     try:
-        result = coach.check(sloka, load_audio(recording))
+        result = coach.check(ch, sloka, load_audio(recording))
     except UnknownSloka:
-        typer.echo(f"error: sloka {sloka} not found in {text.name}", err=True)
+        typer.echo(f"error: chapter {ch} sloka {sloka} not found in {text.name}", err=True)
         raise typer.Exit(2) from None
     except Exception as exc:
         typer.echo(f"error: cannot read {recording}: {exc}", err=True)
@@ -61,7 +68,7 @@ def check(
     if as_json:
         typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        typer.echo(f"sloka {sloka}: score {result['score']}%  heard: {result['heard']}")
+        typer.echo(f"chapter {ch} sloka {sloka}: score {result['score']}%  heard: {result['heard']}")
         for f in result["findings"]:
             if f["reported"] or show_unsure:
                 tag = "" if f["reported"] else " (unsure)"
@@ -102,8 +109,14 @@ def run_serve(
         typer.echo(f"error: cannot listen on 127.0.0.1:{port}: {exc}", err=True)
         raise typer.Exit(2) from exc
     url = f"http://127.0.0.1:{port}/"
-    n = sum(1 for s in coach.slokas.values() if s.available)
-    typer.echo(f"practice page: {url}  ({n} slokas with instructor audio; Ctrl+C to stop)")
+    total = sum(len(ch.slokas) for ch in coach.chapters.values())
+    n = sum(1 for ch in coach.chapters.values() for s in ch.slokas.values() if s.available)
+    typer.echo(f"practice page: {url}  ({len(coach.chapters)} chapter(s), {total} slokas, {n} with instructor audio)")
+    for ch in coach.chapters.values():
+        if ch.audio_parts and not ch.audio_matches:
+            parts, book = ch.audio_parts, len(ch.slokas)
+            typer.echo(f"  note: chapter {ch.number}: audio split into {parts} parts, book has {book}")
+    typer.echo("Ctrl+C to stop")
     if open_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
     try:

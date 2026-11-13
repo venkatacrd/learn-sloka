@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -92,6 +93,13 @@ def file_stem(src: Path) -> str:
     return src.stem.replace(" ", "_")
 
 
+NAME_OK = re.compile(r"[A-Za-z0-9_\-][A-Za-z0-9_.\-]*")
+
+
+class BadNameError(ValueError):
+    """--name is not a plain file-name stem, or was given for several input files (FR-AS-08)."""
+
+
 def part_name(stem: str, part: Part, width: int) -> str:
     if part.kind == "sloka":
         return f"{stem}_sloka_{part.number:0{width}d}"
@@ -126,12 +134,13 @@ def split_file(
     settings: Settings = Settings(),
     expected: int | None = None,
     text: dict[int, dict[str, list[str]]] | None = None,
+    name: str | None = None,
 ) -> FileResult:
     data = src.read_bytes()
     audio = parse(data)
     analysis = analyze(decode_mono(data), ANALYSIS_RATE, settings)
     result = FileResult(src, warnings=list(analysis.warnings))
-    stem = file_stem(src)
+    stem = name or file_stem(src)
     n_slokas = len(analysis.slokas)
     width = max(2, len(str(n_slokas)))
 
@@ -241,8 +250,14 @@ def split_path(
     settings: Settings = Settings(),
     expected: int | None = None,
     text_path: Path | None = None,
+    name: str | None = None,
 ) -> list[FileResult]:
     inputs = collect_inputs(path)
+    if name is not None:
+        if not NAME_OK.fullmatch(name):
+            raise BadNameError(f"--name {name!r}: use letters, digits, _ - . only (e.g. CH11)")
+        if len(inputs) > 1:
+            raise BadNameError(f"--name needs a single input file; {path} holds {len(inputs)} MP3s")
     prepare_output(out, inputs, clean)
     text: dict[int, dict[str, list[str]]] = {}
     text_warning: list[str] = []
@@ -251,7 +266,7 @@ def split_path(
             text = load_sloka_text(text_path)
         except (OSError, ValueError, KeyError, TypeError):
             text_warning = [TEXT_UNREADABLE]
-    results = [split_file(src, out, settings, expected, text) for src in inputs]
+    results = [split_file(src, out, settings, expected, text, name) for src in inputs]
     for r in results:
         r.warnings.extend(text_warning)
     return results

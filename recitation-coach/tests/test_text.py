@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 from recite_coach.cli import check_app
 from recite_coach.compare import compare
 from recite_coach.feedback import letters_iast, to_json
-from recite_coach.library import load_chapter
+from recite_coach.library import load_book, load_chapter
 from recite_coach.normalize import chars_of, comparison_form, text_of
 from tests.conftest import AUDIO, TEXT, heard
 
@@ -36,17 +36,17 @@ def test_AC_RC_01_library_padas_and_speakers(chapter: Path) -> None:
     assert not s[1].available  # no audio folder given
 
 
-@pytest.mark.skipif(TEXT is None or not AUDIO.is_dir(), reason="repo outputs (text-outs/, audio-outs/) not present")
+@pytest.mark.skipif(TEXT is None or not AUDIO.is_dir(), reason="book text (output/pdf/) or chapter 1 audio not present")
 def test_AC_RC_01_reference_chapter(tmp_path: Path) -> None:
     assert TEXT is not None
-    s = load_chapter(TEXT, AUDIO)
+    s = load_book(TEXT, AUDIO)[1].slokas
     assert len(s) == 47 and all(x.available for x in s.values())
     assert s[2].lines[0].dev.startswith("सञ्जय उवाच")
     assert [ln.speaker for ln in s[21].lines].index(True) == 2
     copy = tmp_path / "audio"
     shutil.copytree(AUDIO, copy)
     next(copy.glob("*_sloka_05.mp3")).unlink()
-    assert not load_chapter(TEXT, copy)[5].available
+    assert not load_book(TEXT, copy)[1].slokas[5].available
 
 
 def test_AC_RC_03_normalisation() -> None:
@@ -117,3 +117,27 @@ def test_check_cli_errors(chapter: Path, tmp_path: Path) -> None:
     rec.write_bytes(b"not audio")
     r = CliRunner().invoke(check_app, [str(rec), "--sloka", "1", "--text", str(chapter)])
     assert r.exit_code == 2  # model missing or audio unreadable
+
+
+def _mp3s(folder: Path, name: str, count: int) -> None:
+    folder.mkdir(parents=True)
+    for k in range(1, count + 1):
+        (folder / f"{name}_sloka_{k:02d}.mp3").write_bytes(b"ID3")
+
+
+def test_AC_RC_13_whole_book_chapters(book: Path, chapter: Path, tmp_path: Path) -> None:
+    root = tmp_path / "mp3"
+    _mp3s(root / "1_Ch 01 Complete", "1_Ch_01_Complete", 3)
+    _mp3s(root / "1_CH 02 Complete", "CH02", 1)  # one file fewer than the book's 2 slokas
+    _mp3s(root / "1_Ch 00 Complete", "CH00", 4)  # no such chapter in the text: ignored
+    b = load_book(book, root)
+    assert sorted(b) == [1, 2]  # the Mahatmya part is not a chapter
+    one, two = b[1], b[2]
+    assert (one.title_dev, two.title_dev, two.title_iast) == ("अर्जुनविषादयोगः", "साङ्ख्ययोगः", "साङ्ख्ययोगः-iast")
+    assert sorted(one.slokas) == [1, 2, 3] and sorted(two.slokas) == [1, 2]
+    assert one.slokas[1].lines[0].dev == "धृतराष्ट्र उवाच" and two.slokas[1].lines[0].dev == "सञ्जय उवाच"
+    assert one.audio_matches and all(s.available for s in one.slokas.values())
+    assert two.audio_parts == 1 and not two.audio_matches
+    assert two.slokas[1].available and not two.slokas[2].available
+    assert list(load_book(chapter, None)) == [1]  # a chapter text without "अथ … अध्यायः" headings
+    assert load_book(book, root / "1_CH 02 Complete")[2].audio_parts == 1  # a single chapter folder

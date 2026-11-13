@@ -9,7 +9,7 @@ import typer
 from . import __version__
 from .analysis import Settings
 from .mp3frames import Mp3Error
-from .splitter import UnsafeOutputError, split_path
+from .splitter import BadNameError, UnsafeOutputError, split_path
 
 app = typer.Typer(add_completion=False, help="Split a chanted recitation MP3 into one MP3 per sloka.")
 
@@ -33,6 +33,9 @@ def main(
     text: Path | None = typer.Option(
         None, "--text", help="Feature-002 .romanized.jsonl: show each sloka's text on the review page."
     ),
+    name: str | None = typer.Option(
+        None, "--name", help="Start of the output file names, e.g. CH11 → CH11_sloka_01.mp3 (default: the MP3's name)."
+    ),
     silence_drop_db: float = typer.Option(20.0, "--silence-drop-db", help="Silence = median level minus this."),
     min_gap: float = typer.Option(0.3, "--min-gap", help="Shortest pause (s) that separates segments."),
     version: bool = typer.Option(False, "--version", callback=_version, is_eager=True),
@@ -47,8 +50,8 @@ def main(
         half_verse_end=half_verse_end,  # type: ignore[arg-type]
     )
     try:
-        results = split_path(input, out, clean=clean, settings=settings, expected=expected, text_path=text)
-    except (UnsafeOutputError, FileNotFoundError, Mp3Error) as e:
+        results = split_path(input, out, clean=clean, settings=settings, expected=expected, text_path=text, name=name)
+    except (UnsafeOutputError, BadNameError, FileNotFoundError, Mp3Error) as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(2) from e
     if not results:

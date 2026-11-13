@@ -16,7 +16,7 @@ brew install tesseract tesseract-lang   # only needed for scanned / broken pages
 ## Use
 
 ```sh
-uv run sanskrit-extract ../01_Chapter_Sanskrit.pdf -o out/
+uv run sanskrit-extract ../input/pdf/01_Chapter_Sanskrit.pdf -o out/
 uv run sanskrit-extract books/ -o out/ --pages 1-10      # also 5, 1,3-4 or 10- (to the end)
 uv run sanskrit-extract book.pdf --dry-run      # page classes and OCR count, no output
 ```

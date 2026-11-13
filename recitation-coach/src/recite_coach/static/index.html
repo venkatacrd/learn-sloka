@@ -21,7 +21,10 @@ body { margin: 0; background: var(--bg); color: var(--ink);
 main { max-width: 860px; margin: 0 auto; padding: 16px 16px 64px; }
 header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 h1 { font-size: 20px; margin: 0; }
-.picker { display: flex; gap: 6px; align-items: center; }
+.picker { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#chapter { max-width: 100%; }
+.where { color: var(--muted); margin: 0 0 4px; }
+.warn { background: var(--unsure-bg); color: var(--unsure); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; font-size: 14px; }
 button, select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line);
                  border-radius: 8px; padding: 7px 12px; cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--accent); }
@@ -69,13 +72,16 @@ details { margin-top: 12px; color: var(--muted); }
   <header>
     <h1>Sloka recitation practice</h1>
     <div class="picker">
+      <select id="chapter" aria-label="Chapter"></select>
       <button id="prev" aria-label="Previous sloka">‹</button>
       <select id="sloka" aria-label="Sloka"></select>
       <button id="next" aria-label="Next sloka">›</button>
     </div>
   </header>
+  <p class="where" id="where"></p>
 
   <section class="card" aria-label="Sloka text">
+    <div class="warn hidden" id="warn" role="note"></div>
     <div id="text"></div>
     <div class="controls" style="margin-top:12px">
       <button id="playInstructor">▶ Play instructor</button>
@@ -109,7 +115,7 @@ details { margin-top: 12px; color: var(--muted); }
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
-const state = { slokas: [], n: null, wav: null, result: null, recorder: null, stream: null, timer: null };
+const state = { chapters: [], order: [], c: null, n: null, wav: null, result: null, recorder: null, stream: null, timer: null };
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
                 set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
 
@@ -117,24 +123,45 @@ function status(msg, err) { $("status").textContent = msg || ""; $("status").cla
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function md(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*(.+?)\*/g, "<i>$1</i>"); }
 
-// ---------- sloka list and text ----------
+// ---------- chapters, sloka list and text ----------
+const chapterOf = c => state.chapters.find(x => x.number === c);
+function chapterLabel(ch) {
+  return "Chapter " + ch.number + (ch.title_iast ? " · " + ch.title_iast : "") + (ch.audio_parts && !ch.audio_matches ? " ⚠" : "");
+}
+
 async function init() {
-  state.slokas = await (await fetch("/api/slokas")).json();
-  const sel = $("sloka");
-  for (const s of state.slokas) {
+  state.chapters = await (await fetch("/api/chapters")).json();
+  state.order = state.chapters.flatMap(ch => ch.slokas.map(s => [ch.number, s.number]));  // reading order for ‹ ›
+  const sel = $("chapter");
+  for (const ch of state.chapters) {
+    const o = document.createElement("option"); o.value = ch.number; o.textContent = chapterLabel(ch); sel.appendChild(o);
+  }
+  $("chapter").classList.toggle("hidden", state.chapters.length < 2);
+  const [sc, sn] = (store.get("pos") || "").split(":").map(x => parseInt(x, 10));
+  const saved = state.order.find(([c, n]) => c === sc && n === sn);
+  const firstWithAudio = state.chapters.flatMap(ch => ch.slokas.filter(s => s.available).map(s => [ch.number, s.number]))[0];
+  const first = saved || firstWithAudio || state.order[0];
+  if (first) await show(first[0], first[1]);
+  else status("The text has no numbered slokas.", true);
+}
+
+function fillSlokas(c) {
+  const sel = $("sloka"); sel.innerHTML = "";
+  for (const s of chapterOf(c).slokas) {
     const o = document.createElement("option");
     o.value = s.number; o.textContent = "Sloka " + s.number + (s.available ? "" : " (no audio)");
     sel.appendChild(o);
   }
-  const saved = parseInt(store.get("sloka") || "", 10);
-  const first = state.slokas.find(s => s.number === saved) || state.slokas.find(s => s.available) || state.slokas[0];
-  if (first) await show(first.number);
 }
 
-async function show(n) {
-  state.n = n; store.set("sloka", String(n)); $("sloka").value = String(n);
-  resetRecording(); $("feedback").classList.add("hidden");
-  const s = await (await fetch("/api/sloka/" + n)).json();
+async function show(c, n) {
+  if (state.c !== c) fillSlokas(c);
+  state.c = c; state.n = n; store.set("pos", c + ":" + n);
+  $("chapter").value = String(c); $("sloka").value = String(n);
+  resetRecording(); $("feedback").classList.add("hidden"); state.result = null;
+  const s = await (await fetch("/api/sloka/" + c + "/" + n)).json();
+  $("where").textContent = "Chapter " + c + (s.title_iast ? " · " + s.title_iast : "") + " · sloka " + n;
+  $("warn").textContent = s.audio_warning || ""; $("warn").classList.toggle("hidden", !s.audio_warning);
   const box = $("text"); box.innerHTML = "";
   s.lines.forEach((ln, li) => {
     const d = document.createElement("div");
@@ -145,17 +172,22 @@ async function show(n) {
       '</div><div class="iast">' + iw.map((w, i) => '<span class="w" data-l="' + li + '" data-p="' + i + '">' + esc(w) + "</span>").join(" ") + "</div></div>";
     box.appendChild(d);
   });
-  $("instructor").src = "/audio/" + n;
+  stopAll();
+  if (s.available) $("instructor").src = "/audio/" + c + "/" + n; else $("instructor").removeAttribute("src");
   $("playInstructor").disabled = !s.available;
-  $("rec").disabled = !s.available;
-  const i = state.slokas.findIndex(x => x.number === n);
-  $("prev").disabled = i <= 0; $("next").disabled = i >= state.slokas.length - 1;
-  status(s.available ? "" : "No instructor audio for this sloka.");
+  const i = state.order.findIndex(([x, y]) => x === c && y === n);
+  $("prev").disabled = i <= 0; $("next").disabled = i >= state.order.length - 1;
+  status(s.available ? "" : "No instructor audio for this sloka — you can still record and get feedback.");
 }
 
-$("sloka").onchange = e => show(parseInt(e.target.value, 10));
-$("prev").onclick = () => { const i = state.slokas.findIndex(x => x.number === state.n); if (i > 0) show(state.slokas[i - 1].number); };
-$("next").onclick = () => { const i = state.slokas.findIndex(x => x.number === state.n); if (i < state.slokas.length - 1) show(state.slokas[i + 1].number); };
+function step(d) {
+  const i = state.order.findIndex(([c, n]) => c === state.c && n === state.n);
+  const to = state.order[i + d]; if (to) show(to[0], to[1]);
+}
+$("chapter").onchange = e => { const c = parseInt(e.target.value, 10); show(c, chapterOf(c).slokas[0].number); };
+$("sloka").onchange = e => show(state.c, parseInt(e.target.value, 10));
+$("prev").onclick = () => step(-1);
+$("next").onclick = () => step(1);
 
 // ---------- playback ----------
 let stopAt = null, stopEl = null;
@@ -259,7 +291,7 @@ $("submit").onclick = async () => {
   if (!state.wav) return;
   $("submit").disabled = true; status("Checking your recitation…");
   try {
-    const r = await fetch("/api/check/" + state.n, { method: "POST", body: state.wav, headers: { "Content-Type": "audio/wav" } });
+    const r = await fetch("/api/check/" + state.c + "/" + state.n, { method: "POST", body: state.wav, headers: { "Content-Type": "audio/wav" } });
     const out = await r.json();
     if (!r.ok) throw new Error(out.error || r.statusText);
     state.result = out; renderFeedback(); status("");

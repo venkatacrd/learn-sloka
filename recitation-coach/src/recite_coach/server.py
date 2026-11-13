@@ -54,19 +54,19 @@ def make_handler(coach: Coach) -> type[BaseHTTPRequestHandler]:
             try:
                 if path in ("/", "/index.html"):
                     self._send(page(), "text/html; charset=utf-8")
-                elif path == "/api/slokas":
-                    self._json([{"number": n, "available": s.available} for n, s in coach.slokas.items()])
-                elif m := re.fullmatch(r"/api/sloka/(\d+)", path):
-                    self._json(coach.sloka_json(int(m.group(1))))
-                elif m := re.fullmatch(r"/audio/(\d+)", path):
-                    self._audio(int(m.group(1)))
+                elif path == "/api/chapters":
+                    self._json(coach.chapters_json())
+                elif m := re.fullmatch(r"/api/sloka/(\d+)/(\d+)", path):
+                    self._json(coach.sloka_json(int(m.group(1)), int(m.group(2))))
+                elif m := re.fullmatch(r"/audio/(\d+)/(\d+)", path):
+                    self._audio(int(m.group(1)), int(m.group(2)))
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND)
             except UnknownSloka:
                 self._json({"error": "unknown sloka"}, 404)
 
-        def _audio(self, n: int) -> None:
-            src = coach.sloka(n).audio
+        def _audio(self, c: int, n: int) -> None:
+            src = coach.sloka(c, n).audio
             if src is None:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
@@ -84,7 +84,7 @@ def make_handler(coach: Coach) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             if not self._host_ok():
                 return
-            m = re.fullmatch(r"/api/check/(\d+)", self.path.split("?", 1)[0])
+            m = re.fullmatch(r"/api/check/(\d+)/(\d+)", self.path.split("?", 1)[0])
             if not m:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
@@ -94,7 +94,7 @@ def make_handler(coach: Coach) -> type[BaseHTTPRequestHandler]:
                 return
             body = self.rfile.read(size)
             try:
-                result = coach.check(int(m.group(1)), decode_audio(body))
+                result = coach.check(int(m.group(1)), int(m.group(2)), decode_audio(body))
             except UnknownSloka:
                 self._json({"error": "unknown sloka"}, 404)
                 return

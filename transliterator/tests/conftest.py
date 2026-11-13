@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-REFERENCE_PDF = ROOT / "01_Chapter_Sanskrit.pdf"
+REFERENCE_PDF = ROOT / "input" / "pdf" / "01_Chapter_Sanskrit.pdf"
 EXTRACTOR = ROOT / "pdf-extractor"
 
 _BASE: dict[str, Any] = {

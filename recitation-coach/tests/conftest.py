@@ -9,11 +9,10 @@ import pytest
 from recite_coach.compare import HeardChar
 
 ROOT = Path(__file__).resolve().parents[2]
-TEXT = (
-    next(iter(sorted((ROOT / "text-outs").glob("*.romanized.jsonl"))), None) if (ROOT / "text-outs").is_dir() else None
-)
-AUDIO = ROOT / "audio-outs"
-TAKES = ROOT / "audio-input-test"
+# Outputs of ./convert-chapters.sh (whole book) and ./split-audio.sh (chapter 1), and the author's takes (git-ignored)
+TEXT = next(iter(sorted((ROOT / "output/pdf/SrimadBhagawadGeeta_Sanskrit/romanized").glob("*.romanized.jsonl"))), None)
+AUDIO = ROOT / "output" / "mp3" / "1_Ch 01 Complete"
+TAKES = ROOT / "input" / "recordings"
 
 
 def heard(text: str, prob: float = 0.95, step: float = 0.05) -> list[HeardChar]:
@@ -52,5 +51,30 @@ def chapter(tmp_path: Path) -> Path:
         unit("speaker", ["अर्जुन उवाच -"], ["arjuna uvāca -"]),
     ]  # fmt: skip
     p = tmp_path / "ch.romanized.jsonl"
+    p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    return p
+
+
+@pytest.fixture
+def book(tmp_path: Path) -> Path:
+    """Two chapters and a trailing non-chapter part (like the Gita Mahatmya)."""
+    v = "धर्मक्षेत्रे कुरुक्षेत्रे समवेता युयुत्सवः ।"
+    rows = []
+    for ordinal, title, speaker, n in (
+        ("प्रथमो", "अर्जुनविषादयोगः", "धृतराष्ट्र उवाच -", 3),
+        ("द्वितीयो", "साङ्ख्ययोगः", "सञ्जय उवाच -", 2),
+    ):
+        rows += [
+            unit("heading", [f"॥ अथ {ordinal}ऽध्यायः ॥"], [f"|| atha {ordinal}'dhyāyaḥ ||"]),
+            unit("heading", [title], [title + "-iast"]),
+            unit("speaker", [speaker], [speaker + "-iast"]),
+        ]
+        for k in range(1, n + 1):
+            rows.append(unit("verse", [v, f"मामकाः पाण्डवाश्चैव ॥ {k} ॥"], ["a |", f"b || {k} ||"], str(k)))
+    rows += [
+        unit("heading", ["गीतामाहात्म्यम्"], ["gītāmāhātmyam"]),
+        unit("verse", [v, "मामकाः ॥ १ ॥"], ["a |", "b || 1 ||"], "1"),
+    ]
+    p = tmp_path / "book.romanized.jsonl"
     p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
     return p

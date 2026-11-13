@@ -50,15 +50,20 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy
 From the repo root (run tools via `uv run --project <dir>`, not `cd`, so relative paths in options keep working):
 
 ```sh
-./extract-pdf.sh <pdf> [out=pdf-outs] [--pages 9-16] [-- extra extractor options]
-./convert-text.sh <jsonl-dir> [out=text-outs] [--pages 9-16] [--sloka-prefix 1_Ch_01_Complete_sloka_] [--sloka-no-source]
-./convert.sh <pdf> [out=output] [--pages ...] [--sloka-prefix ...]     # both steps
-./split-audio.sh "<chapter>.mp3" [out=audio-outs] -- --expected 47 --text text-outs/<doc>.romanized.jsonl
-./practice.sh [--text <jsonl>] [--audio audio-outs] [--port 8770]   # recitation coach page (model → ~/.recite-coach/)
+./convert.sh [pdf] [--pages 9-16] [--sloka-prefix 1_Ch_01_sloka_] [--sloka-no-source]   # both PDF steps
+./convert-chapters.sh [pdf] [--chapters 18] [--with-source]   # whole book → output/pdf/<pdf>/slokas/CHnn_sloka_NN.txt
+./extract-pdf.sh [pdf] [out] [--pages 9-16] [-- extra extractor options]
+./convert-text.sh output/pdf/<pdf>/extracted [out] [--pages 9-16] [--sloka-prefix ...]     # → sibling romanized/
+./split-audio.sh ["<chapter>.mp3"] [out] -- --expected 47 --text output/pdf/<pdf>/romanized/<doc>.romanized.jsonl
+./practice.sh [--text <pdf name>] [--audio <recording name>] [--port 8770]   # coach page, all chapters (model → ~/.recite-coach/)
 ./build-executables.sh [tool ...]            # PyInstaller one-file binaries → dist/ (rebuild after code changes)
 ```
 
-Each script **empties its output folder first** (with guards against deleting a folder that holds its input) and
+**Folder layout** (FR-TR-17, FR-AS-13, FR-RC-13): inputs in `input/pdf/`, `input/mp3/` (and practice takes in
+`input/recordings/`); a bare file name is looked up there and no input means every file in the folder, one run each.
+Outputs mirror it: `output/pdf/<pdf stem>[_pages-<range>]/{extracted,romanized}/` and `output/mp3/<recording stem>/`.
+An explicit output folder (2nd positional) overrides. `practice.sh` uses the only text/audio in `output/` or asks
+for a name. Each script **empties its output folder first** (with guards against deleting a folder that holds its input) and
 exits non-zero if its loss check fails. `--pages` syntax everywhere: `5`, `1-10`, `1,3-4`, `10-`; numbers are PDF page
 positions (in `SrimadBhagawadGeeta_Sanskrit.pdf` chapter 1 is pages 9–16; printed numbers are offset by 8).
 
@@ -100,12 +105,14 @@ consonant costs more), splits differences per akṣara, classifies the kind, app
 vowel at line end, र्य→र्ज), sets confidence (`REPORT_MIN_PROB` 0.4, dropped visarga always unsure) → `feedback`
 builds IAST sentences and JSON → `server` (stdlib, 127.0.0.1 only, Host check) serves `static/index.html`, which
 records with MediaRecorder and sends 16 kHz WAV. `library` splits each printed half-verse into its two recited lines
-(pādas) by syllables. Thresholds and variants were tuned on the instructor's 47 slokas (≤ 1 false finding per sloka)
-and the author's takes in `audio-input-test/` — re-measure with `tests/test_audio.py` after changing them.
+(pādas) by syllables, and `load_book` splits a whole book into chapters (verse-number restarts + `अथ <ordinal>ोऽध्यायः`
+headings) and matches `output/mp3/*Ch NN*` folders; chapters whose audio part count differs from the book are flagged. Thresholds and variants were tuned on the instructor's 47 slokas (≤ 1 false finding per sloka)
+and the author's takes in `input/recordings/` — re-measure with `tests/test_audio.py` after changing them.
 
 ## Data and outputs
 
-PDFs and audio are git-ignored (copyrighted/large); put `01_Chapter_Sanskrit.pdf`, `SrimadBhagawadGeeta_Sanskrit.pdf`
-and `1_Ch 01 Complete.mp3` in the repo root locally. Tests needing them skip when absent. Outputs (`*-outs/`,
-`output/`, `full-out/`), `dist/`, `.build/` are also ignored. `pdf-extractor/{{HOMEBREW_PREFIX}}/` is a stray empty
+PDFs and audio are git-ignored (copyrighted/large); only the empty `input/*/.gitkeep` folders are committed. Put
+`01_Chapter_Sanskrit.pdf`, `SrimadBhagawadGeeta_Sanskrit.pdf` in `input/pdf/` and `1_Ch 01 Complete.mp3` in `input/mp3/`.
+Tests needing them skip when absent; the coach's real-audio tests also need `output/pdf/SrimadBhagawadGeeta_Sanskrit/` and
+`output/mp3/1_Ch 01 Complete/` (run `convert-chapters.sh` / `split-audio.sh`). `output/`, `dist/`, `.build/` are ignored. `pdf-extractor/{{HOMEBREW_PREFIX}}/` is a stray empty
 folder created by a system library — ignore it.

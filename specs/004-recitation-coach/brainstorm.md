@@ -7,7 +7,7 @@ Status: **Experiments done; spec drafted** → [spec.md](spec.md) (2026-11-11). 
 The learner records themselves reciting one sloka; the app finds pronunciation mistakes and replies with specific
 feedback (which word, which sound, what was expected).
 
-Available per sloka: the reference recording (feature 003, `audio-outs/<name>_sloka_NN.mp3`) and the text
+Available per sloka: the reference recording (feature 003, `output/mp3/<recording>/<name>_sloka_NN.mp3`) and the text
 (feature 002, `--sloka-prefix` → `slokas/<name>_sloka_NN.txt`, Devanagari + IAST).
 
 ## Mistakes to catch
@@ -110,7 +110,7 @@ mistakes) to measure true false-alarm rates.
 
 ### Real recordings (2026-11-11)
 
-Three learner takes of sloka 1 in `audio-input-test/` (git-ignored): `chapter1-sloka1-test.mp3`, `take 1 - fail.mp3`,
+Three learner takes of sloka 1 in `audio-input-test/` (now `input/recordings/`, git-ignored): `chapter1-sloka1-test.mp3`, `take 1 - fail.mp3`,
 `take 3 - error.mp3`. Ground truth from the author: line 1 correct, mistakes in lines 2, 3 and 4 (exact mistakes not
 yet listed). Automatic sloka identification picked sloka 1 for all three (clear margin only for the first).
 

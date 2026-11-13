@@ -2,14 +2,16 @@
 # Convenience chain: PDF(s) → Devanagari units → romanized IAST, with loss checks.
 # Runs the two separate tools one after the other:
 #
-#   ./convert.sh <pdf-or-folder> [output-dir] [--pages 9-24] [--sloka-prefix NAME_] [-- extra extractor options]
+#   ./convert.sh [<pdf-or-folder>] [output-dir] [--pages 9-24] [--sloka-prefix NAME_] [-- extra extractor options]
 #   --sloka-prefix NAME_ (or --sloka-files): also one file per sloka in <output>/romanized/slokas/
 #   --sloka-no-source: sloka files hold only the IAST lines
 #
-# Output (both subfolders are emptied before the run):
-#   <output>/extracted/   from ./extract-pdf.sh   (feature 001)
-#   <output>/romanized/   from ./convert-text.sh  (feature 002)
-# Exit code is non-zero if either step failed or lost anything. Default output: output/
+# Input: PDFs live in input/pdf/. A bare file name is looked up there; no input = every PDF in input/pdf/.
+# Output, per PDF (both subfolders are emptied before the run):
+#   output/pdf/<pdf name>/extracted/   from ./extract-pdf.sh   (feature 001)
+#   output/pdf/<pdf name>/romanized/   from ./convert-text.sh  (feature 002)
+#   With --pages the folder is output/pdf/<pdf name>_pages-9-24/. An output folder given replaces output/pdf/<…>/.
+# Exit code is non-zero if either step failed or lost anything.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -29,9 +31,28 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 PAGE_OPT=(); [[ -n "$PAGES" ]] && PAGE_OPT=(--pages "$PAGES")
-if [[ ${#POS[@]} -lt 1 ]]; then sed -n '2,11p' "$0"; exit 2; fi
+INBOX="$ROOT/input/pdf"
+if [[ ${#POS[@]} -lt 1 ]]; then
+  [[ -d "$INBOX" ]] || { sed -n '2,14p' "$0"; exit 2; }
+  POS=("$INBOX")
+fi
 IN="${POS[0]}"
-OUT="${POS[1]:-$ROOT/output}"
+[[ ! -e "$IN" && -e "$INBOX/$IN" ]] && IN="$INBOX/$IN"
+[[ -e "$IN" ]] || { echo "error: ${POS[0]} not found (PDFs go in input/pdf/)" >&2; exit 2; }
+
+# A folder and no output folder: one run per PDF, each into its own output/pdf/<name>/ folder.
+if [[ -d "$IN" && ${#POS[@]} -lt 2 ]]; then
+  shopt -s nullglob; PDFS=("$IN"/*.[pP][dD][fF]); shopt -u nullglob
+  [[ ${#PDFS[@]} -gt 0 ]] || { echo "error: no PDF in $IN" >&2; exit 2; }
+  ALL=0
+  for f in "${PDFS[@]}"; do
+    echo "==== $(basename "$f")"
+    "$0" "$f" ${PAGE_OPT[@]+"${PAGE_OPT[@]}"} ${SLOKA_OPT[@]+"${SLOKA_OPT[@]}"} -- ${EXTRA[@]+"${EXTRA[@]}"} || ALL=1
+  done
+  exit $ALL
+fi
+NAME="$(basename "$IN")"; NAME="${NAME%.*}"; [[ -n "$PAGES" ]] && NAME+="_pages-${PAGES//,/_}"
+OUT="${POS[1]:-$ROOT/output/pdf/$NAME}"
 
 echo "== 1/2 PDF reader"
 "$ROOT/extract-pdf.sh" "$IN" "$OUT/extracted" ${PAGE_OPT[@]+"${PAGE_OPT[@]}"} -- ${EXTRA[@]+"${EXTRA[@]}"} || EX=$?

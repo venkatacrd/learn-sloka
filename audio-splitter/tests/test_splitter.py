@@ -141,3 +141,27 @@ def test_AC_AS_14_review_page(mp3_src: Path, tmp_path: Path) -> None:
     bad = tmp_path / "bad"
     [r] = split_path(mp3_src, bad, text_path=tmp_path / "missing.jsonl")
     assert "text_unreadable" in r.warnings
+
+
+def test_AC_AS_15_name_option(mp3_src: Path, tmp_path: Path) -> None:
+    out = tmp_path / "named"
+    r = runner.invoke(app, [str(mp3_src), "-o", str(out), "--name", "CH9"])
+    assert r.exit_code == 0, r.stdout
+    assert _names(out) == [
+        "CH9.labels.txt",
+        "CH9.review.html",
+        "CH9.splits.json",
+        "CH9_closing.mp3",
+        "CH9_intro.mp3",
+    ] + [f"CH9_sloka_{i:02d}.mp3" for i in range(1, 6)]
+    assert str(ID3(out / "CH9_sloka_02.mp3")["TALB"]) == "Ch 9 Test.mp3"
+
+    two = tmp_path / "two"
+    two.mkdir()
+    for n in ("a.mp3", "b.mp3"):
+        (two / n).write_bytes(mp3_src.read_bytes())
+    for args in ([str(two), "--name", "CH9"], [str(mp3_src), "--name", "../x"], [str(mp3_src), "--name", ".hidden"]):
+        bad = tmp_path / "bad"
+        r = runner.invoke(app, [*args, "-o", str(bad)])
+        assert r.exit_code == 2, args
+        assert not bad.exists() or not any(bad.iterdir())

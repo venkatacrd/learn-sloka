@@ -3,8 +3,10 @@
 Splits a chanted recitation MP3 into one MP3 per sloka. Spec: [specs/003-audio-splitter/](../specs/003-audio-splitter/).
 
 ```sh
-./split-audio.sh "1_Ch 01 Complete.mp3"                    # from the repo root; empties audio-outs/ first
+./split-audio.sh "1_Ch 01 Complete.mp3"                    # from the repo root: input/mp3/ → output/mp3/1_Ch 01 Complete/
 ./split-audio.sh "1_Ch 01 Complete.mp3" -- --expected 47   # also check the sloka count
+./split-audio.sh                                          # every MP3 in input/mp3/, each into its own folder
+./split-audio.sh "1_Ch 11 Complete.mp3" -- --name CH11 --expected 55   # files CH11_sloka_01.mp3 … instead of 1_Ch_11_Complete_…
 
 cd audio-splitter && UV_NO_EDITABLE=1 uv run sloka-split <mp3-or-folder> -o <outdir> [--clean] [--expected N]
 ```
@@ -23,7 +25,7 @@ the parts joined back give the original audio byte for byte. No ffmpeg needed.
 Review the cuts: open `<name>.review.html` (written next to the MP3s) in a browser. For each file, ▶ Start / ▶ End
 play just the first / last 5 s; mark it OK or wrong (keys `1`–`5`, `j`/`k` to move), then *Export findings* to get
 `<name>.review-findings.json`. Marks stay in the browser between visits. Add each sloka's text with
-`--text ../text-outs/<doc>.romanized.jsonl` (output of `convert-text.sh`). Alternatively open the original MP3 in
+`--text output/pdf/<pdf>/romanized/<doc>.romanized.jsonl` (output of `convert.sh`). Alternatively open the original MP3 in
 Audacity, *File › Import › Labels…* and pick `<name>.labels.txt`.
 
 Exit codes: 0 ok · 1 doubtful split (`count_mismatch`, `no_cadence_pattern`, `incomplete_last_sloka`,
@@ -32,4 +34,4 @@ Exit codes: 0 ok · 1 doubtful split (`count_mismatch`, `no_cadence_pattern`, `i
 Limits: needs a reciter whose half-verse cadence is clearly lower; 6-pāda verses shift the pairing (use
 `--expected` to catch it).
 
-Tests: `uv run pytest` (synthetic chants + an end-to-end run on `../1_Ch 01 Complete.mp3` when present).
+Tests: `uv run pytest` (synthetic chants + an end-to-end run on `../input/mp3/1_Ch 01 Complete.mp3` when present).

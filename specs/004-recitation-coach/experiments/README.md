@@ -17,3 +17,6 @@ python sushrota_test.py <model-dir> audio-outs text-outs/slokas audio-input-test
 
 `compare.py` and `identify.py` import `option_a.py` from the same folder and expect the learner takes in
 `audio-input-test/` (git-ignored). `sushrota_test.py` reads the Devanagari text from `text-outs/*.romanized.jsonl`.
+
+These scripts predate the `input/` / `output/` layout: their folder arguments were `audio-outs` (now
+`output/mp3/<recording>/`), `text-outs` (now `output/pdf/<pdf>/romanized/`) and `audio-input-test` (now `input/recordings/`).

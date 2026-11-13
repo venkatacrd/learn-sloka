@@ -31,7 +31,7 @@ recitation-coach/
     static/index.html
     cli.py         # recite-check, recite-setup, recite-serve (thin)                           (FR-RC-12, 13)
   tests/
-practice.sh        # repo root: setup if needed, start server, open the page
+practice.sh        # repo root: setup if needed, start server (text from output/pdf/, audio from output/mp3/), open the page
 ```
 
 ## Flow of one check

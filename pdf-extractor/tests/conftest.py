@@ -11,7 +11,7 @@ from referencing import Registry, Resource
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = ROOT / "specs" / "contracts"
 SAMPLES = ROOT / "samples"
-REFERENCE_PDF = ROOT / "01_Chapter_Sanskrit.pdf"
+REFERENCE_PDF = ROOT / "input" / "pdf" / "01_Chapter_Sanskrit.pdf"
 GOLD_DIR = SAMPLES / "gold"
 
 

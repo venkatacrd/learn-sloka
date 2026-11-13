@@ -24,6 +24,8 @@ because it depends only on the contract (use hand-written sample `extracted-unit
 | TR-T18 | Mixed-script units: romanize Devanagari parts, keep Latin words | FR-TR-08 | AC-TR-16 | T06 |
 | TR-T19 | `--pages` filter by source pages | FR-TR-15 | AC-TR-17 | T11 |
 | TR-T20 | One text file per sloka, configurable name prefix | FR-TR-16 | AC-TR-18 | T19 |
+| TR-T21 | Root scripts use `input/pdf/` → `output/pdf/<stem>[_pages-…]/{extracted,romanized}` | FR-TR-17 | manual run | T17 |
+| TR-T22 | `convert-chapters.sh`: whole book → `CHnn_sloka_NN.txt` per chapter | FR-TR-18 | manual run on the reference book | T21 |
 | TR-T15 | Package README | – | – | T11 |
 
 ## Traceability

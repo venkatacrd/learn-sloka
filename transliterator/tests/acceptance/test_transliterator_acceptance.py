@@ -254,3 +254,48 @@ def test_AC_TR_19_sloka_files_without_source(tmp_path: Path) -> None:
     assert two[1] == "arjuna uvāca -"
     for name in ("gita-1a2b3c4d.romanized.jsonl", "gita-1a2b3c4d.romanized.txt"):
         assert (full / name).read_bytes() == (iast / name).read_bytes()
+
+
+V24 = ["एवमुक्तो हृषीकेशः गुडाकेशेन भारत ।", "सेनयोरुभयोर्मध्ये स्थापयित्वा रथोत्तमम् ॥ २४ ॥"]
+T24 = ["ఏవముక్తో హృషీకేశః గుడాకేశేన భారత ।", "సేనయోరుభయోర్మధ్యే స్థాపయిత్వా రథోత్తమమ్ ॥ ౨౪ ॥"]
+
+
+class CorruptTeluguEngine(SanscriptEngine):
+    def from_devanagari(self, text: str, scheme: str) -> str:
+        out = super().from_devanagari(text, scheme)
+        return out.replace("క్తో", "కో") if scheme == "telugu" else out
+
+
+def test_AC_TR_20_telugu_script() -> None:
+    cfg = Config(schemes=["iast", "telugu"])
+    rec = romanize_unit(unit(text=" ".join(V24), lines=V24), cfg, ENGINE)
+    assert rec["romanized_lines"]["telugu"] == T24
+    assert rec["romanized"]["telugu"] == " ".join(T24)
+    assert rec["transliteration"]["roundtrip_ok"] is True
+    mixed = unit(unit_type="heading", verse_ref=None, text="अध्यायः 1 Chapter", script="mixed")
+    latin = romanize_unit(mixed, cfg, ENGINE)
+    assert latin["romanized"]["telugu"] == "అధ్యాయః 1 Chapter"
+    bad = romanize_unit(unit(text=" ".join(V24), lines=V24), cfg, CorruptTeluguEngine())
+    assert bad["transliteration"]["roundtrip_ok"] is False
+    assert any(w.startswith("telugu_roundtrip_mismatch at ") for w in bad["transliteration"]["warnings"])
+
+
+def test_AC_TR_21_telugu_in_readable_and_sloka_files(tmp_path: Path) -> None:
+    import re
+
+    src = _chapter(tmp_path, [1, 2, 3])
+    out, iast = tmp_path / "out", tmp_path / "iast"
+    args = ["--schemes", "iast,telugu", "--sloka-files"]
+    assert CliRunner().invoke(app, [str(src), "-o", str(out), *args]).exit_code == 0
+    txt = (out / "gita-1a2b3c4d.romanized.txt").read_text(encoding="utf-8").splitlines()
+    i = txt.index("धर्मक्षेत्रे कुरुक्षेत्रे समवेता युयुत्सवः ।")
+    assert txt[i + 2] == "ధర్మక్షేత్రే కురుక్షేత్రే సమవేతా యుయుత్సవః ।"
+    assert txt[i + 4] == "dharmakṣetre kurukṣetre samavetā yuyutsavaḥ |"
+    blocks = (out / "slokas" / "sloka_01.txt").read_text(encoding="utf-8").rstrip("\n").split("\n\n")
+    assert [b.splitlines()[0] for b in blocks] == ["सञ्जय उवाच -", "సఞ్జయ ఉవాచ -", "sañjaya uvāca -"]
+    assert blocks[1].splitlines()[-1].endswith("॥ ౧ ॥")
+    r = CliRunner().invoke(app, [str(src), "-o", str(iast), *args, "--sloka-no-source"])
+    assert r.exit_code == 0, r.output
+    one = (iast / "slokas" / "sloka_01.txt").read_text(encoding="utf-8")
+    assert not re.search("[ऀ-ॿ]", one.replace("।", "").replace("॥", ""))
+    assert [b.splitlines()[0] for b in one.rstrip("\n").split("\n\n")] == ["సఞ్జయ ఉవాచ -", "sañjaya uvāca -"]

@@ -95,7 +95,7 @@ def process_file(
 
 
 def readable_text(records: list[dict[str, Any]]) -> str:
-    """FR-TR-14: each unit's Devanagari lines, then its IAST lines; units separated by a blank line."""
+    """FR-TR-14: each unit's Devanagari lines, then Telugu (if produced), then IAST; a blank line between units."""
     if not records:
         return ""
     first = records[0]["extracted"]
@@ -106,6 +106,7 @@ def readable_text(records: list[dict[str, Any]]) -> str:
         mark = "" if r["transliteration"]["roundtrip_ok"] else "  [ROUND-TRIP FAILED]"
         out.append(f"[{label} · p.{ex['source']['page_start']}]{mark}")
         out += ex["lines"]
+        out += r["romanized_lines"].get("telugu", [])
         out += r["romanized_lines"]["iast"]
         out.append("")
     return "\n".join(out)

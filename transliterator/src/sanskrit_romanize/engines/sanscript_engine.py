@@ -13,6 +13,7 @@ _SCHEMES = {
     "itrans": sanscript.ITRANS,
     "slp1": sanscript.SLP1,
     "velthuis": sanscript.VELTHUIS,
+    "telugu": sanscript.TELUGU,  # a script, not a romanization (FR-TR-19)
 }
 
 

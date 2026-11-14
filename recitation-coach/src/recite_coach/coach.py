@@ -97,5 +97,5 @@ class Coach:
             "title_iast": ch.title_iast,
             "available": s.available,
             "audio_warning": self.audio_warning(c),
-            "lines": [{"speaker": ln.speaker, "dev": ln.dev, "iast": ln.iast} for ln in s.lines],
+            "lines": [{"speaker": ln.speaker, "dev": ln.dev, "telugu": ln.telugu, "iast": ln.iast} for ln in s.lines],
         }

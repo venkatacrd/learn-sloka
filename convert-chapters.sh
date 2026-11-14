@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Whole book → one romanized text file per sloka, named by chapter and sloka number (FR-TR-18).
+# Whole book → one text file per sloka (Devanagari, Telugu, IAST), named by chapter and sloka number (FR-TR-18, 19).
 #
-#   ./convert-chapters.sh [pdf] [--chapters 18] [--with-source]
+#   ./convert-chapters.sh [pdf] [--chapters 18] [--no-source]
 #   ./convert-chapters.sh SrimadBhagawadGeeta_Sanskrit.pdf
 #
 # pdf: a file in input/pdf/ (bare name) or any path; default: the only PDF in input/pdf/.
 # --chapters N   how many chapters to take, in order (default 18; parts after them, e.g. Gita Mahatmya, are skipped)
-# --with-source  sloka files also hold the Devanagari (default: IAST only)
+# --no-source    leave the Devanagari out of the sloka files (default: Devanagari, Telugu and IAST)
 #
 # Steps: ./convert.sh on the whole PDF → chapters found where the verse number restarts → ./convert-text.sh per
 # chapter with its page range and --sloka-prefix CHnn_sloka_.
@@ -19,12 +19,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 INBOX="$ROOT/input/pdf"
-PDF=""; CHAPTERS=18; SOURCE_OPT=(--sloka-no-source)
+PDF=""; CHAPTERS=18; SOURCE_OPT=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     --chapters) [[ $# -ge 2 ]] || { echo "error: --chapters needs a number" >&2; exit 2; }
                 CHAPTERS=$2; shift 2 ;;
-    --with-source) SOURCE_OPT=(); shift ;;
+    --no-source) SOURCE_OPT=(--sloka-no-source); shift ;;
+    --with-source) shift ;;  # the default now; kept so older commands still work
     -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
     -*) echo "error: unknown option $1" >&2; exit 2 ;;
     *) PDF=$1; shift ;;

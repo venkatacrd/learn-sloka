@@ -1,6 +1,6 @@
 # sanskrit-romanize (feature 002)
 
-Reads the extractor's JSONL and adds IAST (other schemes opt-in), checking every unit converts back to the
+Reads the extractor's JSONL and adds IAST (other schemes, including the Telugu script with `--schemes iast,telugu`, opt-in), checking every unit converts back to the
 identical Devanagari. Spec: [specs/002-transliterator/](../specs/002-transliterator/).
 
 ```sh

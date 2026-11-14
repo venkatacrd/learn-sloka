@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-SUPPORTED_SCHEMES = ("iast", "iso15919", "hk", "itrans", "slp1", "velthuis", "ascii")
+SUPPORTED_SCHEMES = ("iast", "iso15919", "hk", "itrans", "slp1", "velthuis", "ascii", "telugu")  # telugu: FR-TR-19
 
 
 class Config(BaseModel):

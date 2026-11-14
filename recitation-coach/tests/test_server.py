@@ -76,7 +76,12 @@ def test_AC_RC_14_endpoints(url: str) -> None:
         (1, "अर्जुनविषादयोगः", 3, True), (2, "साङ्ख्ययोगः", 1, False)]  # fmt: skip
     assert chapters[1]["slokas"] == [{"number": 1, "available": True}, {"number": 2, "available": False}]
     s = json.loads(get(url + "/api/sloka/1/1")[1])
-    assert s["lines"][0] == {"speaker": True, "dev": "धृतराष्ट्र उवाच", "iast": "dhṛtarāṣṭra uvāca"}
+    assert s["lines"][0] == {
+        "speaker": True,
+        "dev": "धृतराष्ट्र उवाच",
+        "telugu": "ధృతరాష్ట్ర ఉవాచ",
+        "iast": "dhṛtarāṣṭra uvāca",
+    }
     assert s["audio_warning"] == "" and "2 slokas" in json.loads(get(url + "/api/sloka/2/1")[1])["audio_warning"]
     assert get(url + "/api/sloka/1/99")[0] == 404 and get(url + "/api/sloka/7/1")[0] == 404
     code, body, hdr = get(url + "/audio/2/1", {"Range": "bytes=3-6"})
@@ -101,3 +106,14 @@ def test_check_upload(url: str) -> None:
 
 def test_foreign_host_refused(url: str) -> None:
     assert get(url + "/api/chapters", {"Host": "evil.example:80"})[0] == 403
+
+
+def test_AC_RC_15_three_scripts(url: str) -> None:
+    s = json.loads(get(url + "/api/sloka/1/1")[1])
+    for ln in s["lines"]:
+        assert len(ln["dev"].split()) == len(ln["telugu"].split()) == len(ln["iast"].split())
+    assert s["lines"][0]["telugu"] == "ధృతరాష్ట్ర ఉవాచ"
+    assert s["lines"][1]["telugu"] == "ధర్మక్షేత్రే కురుక్షేత్రే"
+    html = page().decode("utf-8")
+    for script in ("dev", "tel", "iast"):
+        assert re.search(rf'<input type="checkbox" id="show-{script}"[^>]* checked', html), script

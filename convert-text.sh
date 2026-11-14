@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Text converter (feature 002): extracted Devanagari JSONL → romanized IAST, with a loss check.
+# Text converter (feature 002): extracted Devanagari JSONL → IAST and Telugu script, with a loss check.
 #
 #   ./convert-text.sh <jsonl-or-folder> [output-dir] [--pages 9-24] [--sloka-prefix NAME_] [-- extra options]
 #   ./convert-text.sh output/pdf/<pdf name>/extracted      → output/pdf/<pdf name>/romanized/
@@ -7,7 +7,7 @@
 # --pages: convert only units from these PDF pages (5, 1-10, 1,3-4 or 10-).
 # --sloka-prefix NAME_: also write one file per sloka, <output>/slokas/NAME_01.txt, NAME_02.txt, …
 #   (number = verse number; Devanagari lines, blank line, IAST lines). --sloka-files does the same with "sloka_".
-# --sloka-no-source: sloka files hold only the IAST lines (no Devanagari source text).
+# Sloka files: Devanagari, blank line, Telugu, blank line, IAST. --sloka-no-source leaves out the Devanagari.
 # Input: output of ./extract-pdf.sh (output/pdf/<pdf name>/extracted/).
 # Output: the folder romanized/ next to an …/extracted input folder, otherwise output/pdf/<input name>/romanized/,
 #   unless an output folder is given. The output folder is emptied before every run.
@@ -57,7 +57,7 @@ unset VIRTUAL_ENV
 
 echo "== romanize: $IN${PAGES:+ (pages $PAGES)} -> $OUT"
 uv run -q --project "$ROOT/transliterator" --extra crosscheck sanskrit-romanize "$IN" -o "$OUT" \
-  --strict --cross-check ${PAGE_OPT[@]+"${PAGE_OPT[@]}"} ${SLOKA_OPT[@]+"${SLOKA_OPT[@]}"} \
+  --schemes iast,telugu --strict --cross-check ${PAGE_OPT[@]+"${PAGE_OPT[@]}"} ${SLOKA_OPT[@]+"${SLOKA_OPT[@]}"} \
   ${EXTRA[@]+"${EXTRA[@]}"} || TR=$?
 
 python3 - "$OUT" <<'PY' || CHECK=$?

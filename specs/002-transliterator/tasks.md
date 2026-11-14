@@ -26,6 +26,7 @@ because it depends only on the contract (use hand-written sample `extracted-unit
 | TR-T20 | One text file per sloka, configurable name prefix | FR-TR-16 | AC-TR-18 | T19 |
 | TR-T21 | Root scripts use `input/pdf/` → `output/pdf/<stem>[_pages-…]/{extracted,romanized}` | FR-TR-17 | manual run | T17 |
 | TR-T22 | `convert-chapters.sh`: whole book → `CHnn_sloka_NN.txt` per chapter | FR-TR-18 | manual run on the reference book | T21 |
+| TR-T23 | Telugu script output, its round-trip, readable file and sloka file blocks; root scripts add it; `convert-chapters.sh` default all three scripts | FR-TR-14, 16, 18, 19 | AC-TR-20, 21 | T22 |
 | TR-T15 | Package README | – | – | T11 |
 
 ## Traceability

@@ -55,7 +55,7 @@ From the repo root. Scripts call tools via `uv run --project <dir>` rather than 
 keep working.
 
 ```sh
-./convert-chapters.sh [pdf] [--chapters 18] [--with-source]   # book → output/pdf/<pdf>/slokas/CHnn_sloka_NN.txt
+./convert-chapters.sh [pdf] [--chapters 18] [--no-source]   # book → output/pdf/<pdf>/slokas/CHnn_sloka_NN.txt
 ./convert.sh [pdf] [--pages 9-16] [--sloka-prefix X_] [--sloka-no-source]   # extract + romanize
 ./extract-pdf.sh [pdf] [out] [--pages 9-16] [-- extractor options]
 ./convert-text.sh output/pdf/<pdf>/extracted [out] [--pages …] [--sloka-prefix …]   # → sibling romanized/
@@ -97,8 +97,10 @@ keep working.
 
 **Transliterator** (`io.process_file`):
 - **Pipeline:** validate against the input contract → optional `--pages` filter on `source.page_start/end` →
-  `unit.romanize_unit` (`sanscript`, `postprocess` for dandas/digits/avagraha) → **round-trip check** (IAST →
-  Devanagari must equal the source) → validate the output contract → JSONL + report + `.txt`.
+  `unit.romanize_unit` (`sanscript`, `postprocess` for dandas/digits/avagraha) → **round-trip check** (IAST and,
+  when produced, Telugu → Devanagari must equal the source) → validate the output contract → JSONL + report + `.txt`.
+- `telugu` is an output "scheme" (a script, FR-TR-19): stored in `romanized.telugu` / `romanized_lines.telugu`,
+  Telugu digits, dandas kept. The root scripts always produce it; `.txt` and sloka files show Devanagari, Telugu, IAST.
 - An optional aksharamukha cross-check engine compares every unit.
 - `sloka_files.py` names files by **verse number**. Speaker lines attach to the next verse, or mid-verse for
   `split_by_speaker`. Unnumbered verses are skipped, and repeated verse numbers are an error, so files are made one

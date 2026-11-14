@@ -15,5 +15,6 @@ Increment 1 (practice page). Tests first; each test name carries its AC ID. **St
 | RC-T09 | `practice.sh`, `.gitignore`, README, CLAUDE.md | FR-RC-13 | manual run | T08 |
 | RC-T10 | Repository layout: `practice.sh` defaults and short names for `output/pdf/`, `output/mp3/`; test paths | FR-RC-01, 13 | manual run | T09 |
 | RC-T11 | Whole book: chapters in library/coach/server/CLI, chapter picker and audio-count warning on the page, `practice.sh` audio root default | FR-RC-14 | AC-RC-13, AC-RC-14 | T10 |
+| RC-T12 | Telugu line per word on the page, script switches (default all, remembered) | FR-RC-03 | AC-RC-15 | T11 |
 
 Increment 2 (later): profiles (FR-RC-02), history (FR-RC-11), accepted-variants page action (FR-RC-09).

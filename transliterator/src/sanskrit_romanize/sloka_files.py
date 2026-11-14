@@ -16,6 +16,7 @@ class Sloka:
     number: int
     dev: list[str]
     iast: list[str]
+    telugu: list[str] = field(default_factory=list)  # empty when the telugu script was not produced
 
 
 @dataclass
@@ -31,13 +32,14 @@ def _number(rec: dict[str, Any]) -> int | None:
     return int(m.group(1)) if m else None
 
 
-def _lines(rec: dict[str, Any]) -> tuple[list[str], list[str]]:
-    return list(rec["extracted"]["lines"]), list(rec["romanized_lines"]["iast"])
+def _lines(rec: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
+    rl = rec["romanized_lines"]
+    return list(rec["extracted"]["lines"]), list(rl["iast"]), list(rl.get("telugu", []))
 
 
 def collect(records: list[dict[str, Any]]) -> SlokaSet:
     out = SlokaSet()
-    pending: tuple[list[str], list[str]] | None = None  # speaker line waiting for its verse
+    pending: tuple[list[str], list[str], list[str]] | None = None  # speaker line waiting for its verse
     for i, rec in enumerate(records):
         ex = rec["extracted"]
         kind = ex["unit_type"]
@@ -45,9 +47,9 @@ def collect(records: list[dict[str, Any]]) -> SlokaSet:
             prev = records[i - 1]["extracted"] if i else None
             split = prev is not None and prev["unit_type"] == "verse" and "split_by_speaker" in prev["quality"]["flags"]
             if split and out.slokas and out.slokas[-1].number == _number(records[i - 1]):
-                dev, iast = _lines(rec)  # speaker printed inside the previous verse
+                dev, iast, tel = _lines(rec)  # speaker printed inside the previous verse
                 last = out.slokas[-1]
-                last.dev[1:1], last.iast[1:1] = dev, iast
+                last.dev[1:1], last.iast[1:1], last.telugu[1:1] = dev, iast, tel
             else:
                 pending = _lines(rec)
             continue
@@ -56,24 +58,26 @@ def collect(records: list[dict[str, Any]]) -> SlokaSet:
             out.skipped.append({"unit_id": ex["unit_id"], "unit_type": kind, "text": ex["text"][:80]})
             pending = None
             continue
-        dev, iast = _lines(rec)
+        dev, iast, tel = _lines(rec)
         if pending:
-            dev, iast = pending[0] + dev, pending[1] + iast
+            dev, iast, tel = pending[0] + dev, pending[1] + iast, pending[2] + tel
             pending = None
-        out.slokas.append(Sloka(number, dev, iast))
+        out.slokas.append(Sloka(number, dev, iast, tel))
     numbers = [s.number for s in out.slokas]
     out.duplicates = sorted({n for n in numbers if numbers.count(n) > 1})
     return out
 
 
 def write_sloka_files(folder: Path, prefix: str, slokas: list[Sloka], include_source: bool = True) -> list[Path]:
-    """include_source=False leaves out the Devanagari lines (IAST only)."""
+    """Blocks separated by a blank line: Devanagari (unless include_source=False), Telugu (if produced), IAST."""
     folder.mkdir(parents=True, exist_ok=True)
     width = max(2, len(str(max((s.number for s in slokas), default=0))))
     paths = []
     for s in slokas:
         path = folder / f"{prefix}{s.number:0{width}d}.txt"
-        lines = [*s.dev, "", *s.iast] if include_source else s.iast
+        blocks = [s.dev] if include_source else []
+        blocks += [b for b in (s.telugu, s.iast) if b]
+        lines = [ln for k, b in enumerate(blocks) for ln in ([""] if k else []) + b]
         path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         paths.append(path)
     return paths

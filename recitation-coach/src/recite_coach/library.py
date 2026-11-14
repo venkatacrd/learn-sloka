@@ -17,6 +17,13 @@ class Word:
     dev: str
     iast: str
 
+    @property
+    def telugu(self) -> str:
+        """Telugu script, converted from the Devanagari letter for letter (FR-RC-03)."""
+        from indic_transliteration import sanscript
+
+        return str(sanscript.transliterate(self.dev, sanscript.DEVANAGARI, sanscript.TELUGU))
+
 
 @dataclass(frozen=True)
 class Line:
@@ -31,6 +38,10 @@ class Line:
     @property
     def iast(self) -> str:
         return " ".join(w.iast for w in self.words)
+
+    @property
+    def telugu(self) -> str:
+        return " ".join(w.telugu for w in self.words)
 
 
 @dataclass

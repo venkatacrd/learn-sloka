@@ -15,7 +15,7 @@ _DEFAULT = SanscriptEngine()
 def romanize(
     text: str, scheme: str = "iast", config: Config | None = None, engine: TransliterationEngine | None = None
 ) -> str:
-    """Devanagari → `scheme` (iast, iso15919, hk, itrans, slp1, velthuis, or the lossy ascii).
+    """Devanagari → `scheme` (iast, iso15919, hk, itrans, slp1, velthuis, the lossy ascii, or the telugu script).
 
     Latin words in the text (e.g. a Roman page number) are kept exactly as they are (FR-TR-08).
     """

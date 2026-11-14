@@ -34,6 +34,10 @@ def romanize_unit(
             warnings.append("latin_text_kept")
         problems = [roundtrip.check_source(ex["text"], engine, cfg)]
         problems += [roundtrip.check_source(src, engine, cfg) for src in ex["lines"]]
+        if "telugu" in romanized:
+            problems.append(roundtrip.check_telugu(ex["text"], romanized["telugu"], engine))
+            pairs = zip(ex["lines"], lines["telugu"], strict=True)
+            problems += [roundtrip.check_telugu(src, tel, engine) for src, tel in pairs]
         found = [p for p in problems if p]
         warnings += found[:1]
         ok = not found

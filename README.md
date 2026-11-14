@@ -3,7 +3,7 @@
 Local, offline tools for Bhagavad Gita study material:
 
 - **PDF reader**: reads Sanskrit PDFs (Devanagari slokas) into clean text, dropping page headers and footers.
-- **Text converter**: turns that text into romanized IAST, with one file per sloka if you want.
+- **Text converter**: turns that text into Telugu script and romanized IAST, with one file per sloka if you want.
 - **MP3 splitter**: cuts a chapter recitation into one MP3 per sloka.
 - **Recitation coach**: a practice page in your browser that plays the instructor, records you, and points out
   pronunciation mistakes.
@@ -34,7 +34,7 @@ input/                     you put files here (not in git; only the empty folder
 output/                    the scripts write here (not in git)
   pdf/<pdf name>/            one folder per PDF (<pdf name>_pages-80-93/ when --pages is used)
     extracted/                 Devanagari text units + report
-    romanized/                 IAST text + readable .txt + report
+    romanized/                 Telugu + IAST text, readable .txt, report
     chapters/CH01 … CH18/      per-chapter text and sloka files (convert-chapters.sh)
     slokas/                    all sloka files together (convert-chapters.sh)
   mp3/<recording name>/      one MP3 per sloka + review page
@@ -48,7 +48,7 @@ output folder before it runs** (and refuses to empty a folder that holds its inp
 
 | Command | What it does |
 |---------|--------------|
-| `./convert-chapters.sh [pdf] [--with-source]` | Whole book → one IAST file per sloka, named by chapter and sloka (`CH02_sloka_47.txt`). Finds each chapter's pages by itself. `--with-source` adds the Devanagari. |
+| `./convert-chapters.sh [pdf] [--no-source]` | Whole book → one file per sloka with Devanagari, Telugu and IAST, named by chapter and sloka (`CH02_sloka_47.txt`). Finds each chapter's pages by itself. `--no-source` leaves out the Devanagari. |
 | `./convert.sh [pdf] [--pages 9-16]` | PDF → `extracted/` + `romanized/` in one go. |
 | `./extract-pdf.sh [pdf] [--pages 9-16]` | PDF reader only → `extracted/`. |
 | `./convert-text.sh <…/extracted> [--pages 9-16]` | Text converter only → the `romanized/` folder next to it. |
@@ -61,8 +61,8 @@ output folder before it runs** (and refuses to empty a folder that holds its inp
 - `--pages 5`, `1-10`, `1,3-4` or `10-` (to the end). These are positions in the PDF file, not printed page
   numbers (in `SrimadBhagawadGeeta_Sanskrit.pdf` chapter 1 is pages 9–16).
 - `--sloka-prefix NAME_` (`convert.sh`, `convert-text.sh`): also write `slokas/NAME_01.txt`, `NAME_02.txt`, …, one
-  per sloka, named by verse number, with its speaker line (`sañjaya uvāca -`) included. `--sloka-no-source` makes
-  them IAST only. Use one chapter at a time, since verse numbers restart per chapter; `convert-chapters.sh` does
+  per sloka, named by verse number, with its speaker line (`sañjaya uvāca -`) included: Devanagari, Telugu and IAST
+  blocks separated by a blank line. `--sloka-no-source` leaves out the Devanagari. Use one chapter at a time, since verse numbers restart per chapter; `convert-chapters.sh` does
   this for the whole book.
 - Options for the underlying tool go after `--`, e.g. `./extract-pdf.sh book.pdf -- --force-ocr`.
 
@@ -73,7 +73,7 @@ Every script prints a summary and exits non-zero if anything was lost or failed.
 | Tool | What happens | Check |
 |------|--------------|-------|
 | PDF reader ([pdf-extractor/](pdf-extractor/)) | Reads each page from its text layer, a legacy-font table (Sanskrit99) or offline OCR; removes page numbers and running headers/footers; splits the rest into verses, headings and speaker lines. | Every line read is either in the output or listed in the report with the reason it was removed. Unknown font codes are reported, never guessed. If Tesseract is installed, every unit is also read by OCR and big differences are flagged. |
-| Text converter ([transliterator/](transliterator/)) | Converts each line to IAST. | Each line converted back to Devanagari must equal the original exactly. A second engine (aksharamukha) converts it too and any difference is flagged. |
+| Text converter ([transliterator/](transliterator/)) | Converts each line to IAST and Telugu script (Telugu digits in verse numbers: `॥ ౨౪ ॥`). | Each line's IAST and Telugu converted back to Devanagari must equal the original exactly. A second engine (aksharamukha) converts it too and any difference is flagged. |
 | MP3 splitter ([audio-splitter/](audio-splitter/)) | Finds lines from pauses and half-verses from falling pitch; copies whole MP3 frames (no re-encoding). | The parts joined back equal the original byte for byte. `--expected N` flags a wrong sloka count. `<name>.review.html` lets you check every cut by ear. |
 | Recitation coach ([recitation-coach/](recitation-coach/)) | A local speech model writes down what you said; it is compared with the sloka letter by letter. | Tuned so the instructor's own recitation gets at most 1 false finding per sloka on average. |
 
@@ -83,7 +83,7 @@ after that nothing goes online. Personal and family use only; see
 
 Converter output (`output/pdf/<pdf name>/`):
 
-- `romanized/<doc>.romanized.txt`: readable, Devanagari lines then IAST lines, unit by unit
+- `romanized/<doc>.romanized.txt`: readable, Devanagari lines, then Telugu, then IAST, unit by unit
 - `romanized/<doc>.romanized.jsonl`: one record per unit (Devanagari, IAST, verse number, page, citation, search fields)
 - `extracted/<doc>.report.json`, `romanized/<doc>.romanized.report.json`: what was read, removed and flagged
 

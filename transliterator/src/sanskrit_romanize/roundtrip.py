@@ -30,6 +30,16 @@ def check(source: str, iast: str, engine: TransliterationEngine, cfg: Config) ->
     return f"roundtrip_mismatch at {pos}: source {a[pos : pos + 8]!r} vs back {back[pos : pos + 8]!r}"
 
 
+def check_telugu(source: str, telugu: str, engine: TransliterationEngine) -> str | None:
+    """FR-TR-19: the Telugu converted back to Devanagari must equal the source (Latin parts pass through)."""
+    a = unicodedata.normalize("NFC", source)
+    back = unicodedata.normalize("NFC", engine.to_devanagari(telugu, "telugu"))
+    if a == back:
+        return None
+    pos = next((i for i, (x, y) in enumerate(zip(a, back, strict=False)) if x != y), min(len(a), len(back)))
+    return f"telugu_roundtrip_mismatch at {pos}: source {a[pos : pos + 8]!r} vs back {back[pos : pos + 8]!r}"
+
+
 def check_source(source: str, engine: TransliterationEngine, cfg: Config) -> str | None:
     """Round-trip every Devanagari part of `source` (Latin words are kept as-is and need no check)."""
     from sanskrit_romanize.api import romanize

@@ -1,6 +1,6 @@
 # 004 – Recitation Coach: Tasks
 
-Increment 1 (practice page). Tests first; each test name carries its AC ID. **Status 2026-11-11: T01–T09 done.**
+Increment 1 (practice page). Tests first; each test name carries its AC ID. **Status 2026-11-23: T01–T14 done.**
 
 | ID | Task | Satisfies | Tests to write first | Depends |
 |----|------|-----------|----------------------|---------|
@@ -16,5 +16,7 @@ Increment 1 (practice page). Tests first; each test name carries its AC ID. **St
 | RC-T10 | Repository layout: `practice.sh` defaults and short names for `output/pdf/`, `output/mp3/`; test paths | FR-RC-01, 13 | manual run | T09 |
 | RC-T11 | Whole book: chapters in library/coach/server/CLI, chapter picker and audio-count warning on the page, `practice.sh` audio root default | FR-RC-14 | AC-RC-13, AC-RC-14 | T10 |
 | RC-T12 | Telugu line per word on the page, script switches (default all, remembered) | FR-RC-03 | AC-RC-15 | T11 |
+| RC-T13 | Always 4 lines per verse: split only long printed lines (half-verses), keep one-pāda lines whole | FR-RC-01 | AC-RC-16 | T12 |
+| RC-T14 | Spec catch-up: `Host` check on the server | NFR-RC-01 | AC-RC-10 (`test_AC_RC_10_foreign_host_refused`) | T08 |
 
 Increment 2 (later): profiles (FR-RC-02), history (FR-RC-11), accepted-variants page action (FR-RC-09).

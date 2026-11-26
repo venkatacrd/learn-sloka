@@ -19,6 +19,7 @@ because it depends only on the contract (use hand-written sample `extracted-unit
 | TR-T12 | Optional `aksharamukha_engine.py` + `--cross-check` | FR-TR-10 | disagreement report test | T11 [P] |
 | TR-T13 | E2E with extractor output | AC-TR-13 | AC-TR-13 | T11 + EX-T13 |
 | TR-T14 | Benchmark | NFR-TR-03 | `@slow` | T11 |
+| TR-T15 | Package README | – | – | T11 |
 | TR-T16 | Readable `.romanized.txt` output | FR-TR-14 | AC-TR-15 | T10 |
 | TR-T17 | `convert.sh`: one command PDF → romanized, fails on any loss | AC-TR-13, AC-EX-19 | e2e run | T13 |
 | TR-T18 | Mixed-script units: romanize Devanagari parts, keep Latin words | FR-TR-08 | AC-TR-16 | T06 |
@@ -27,7 +28,7 @@ because it depends only on the contract (use hand-written sample `extracted-unit
 | TR-T21 | Root scripts use `input/pdf/` → `output/pdf/<stem>[_pages-…]/{extracted,romanized}` | FR-TR-17 | manual run | T17 |
 | TR-T22 | `convert-chapters.sh`: whole book → `CHnn_sloka_NN.txt` per chapter | FR-TR-18 | manual run on the reference book | T21 |
 | TR-T23 | Telugu script output, its round-trip, readable file and sloka file blocks; root scripts add it; `convert-chapters.sh` default all three scripts | FR-TR-14, 16, 18, 19 | AC-TR-20, 21 | T22 |
-| TR-T15 | Package README | – | – | T11 |
+| TR-T24 | Spec catch-up for the root pipeline scripts: output cleaning and its guard, automatic OCR and second-engine checks, `convert-chapters.sh` PDF choice and count check | FR-TR-17, 18 | manual run | T23 |
 
 ## Traceability
 

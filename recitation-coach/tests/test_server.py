@@ -96,7 +96,8 @@ def test_check_upload(url: str) -> None:
     with urllib.request.urlopen(req) as r:
         out = json.loads(r.read())
     [f] = out["findings"]
-    assert f["kind"] == "retroflex/dental" and f["pada"] == 4 and out["duration_s"] == 1.0
+    # the test book prints `मामकाः पाण्डवाश्चैव` alone on its line: one pāda (FR-RC-01), so the 3rd line
+    assert f["kind"] == "retroflex/dental" and f["pada"] == 3 and out["duration_s"] == 1.0
     assert out["chapter"] == 2 and out["sloka"] == 1
     bad = urllib.request.Request(url + "/api/check/2/1", data=b"not audio", method="POST")
     with pytest.raises(urllib.error.HTTPError) as e:
@@ -104,7 +105,7 @@ def test_check_upload(url: str) -> None:
     assert e.value.code == 400
 
 
-def test_foreign_host_refused(url: str) -> None:
+def test_AC_RC_10_foreign_host_refused(url: str) -> None:
     assert get(url + "/api/chapters", {"Host": "evil.example:80"})[0] == 403
 
 

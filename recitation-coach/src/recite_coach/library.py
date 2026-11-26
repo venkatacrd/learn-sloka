@@ -82,12 +82,16 @@ def syllables(dev: str) -> int:
     return n
 
 
+PADA_MAX = 13  # syllables: a printed line longer than this is a half-verse (2 × 8 anuṣṭubh), shorter is one pāda
+
+
 def _padas(line: Line) -> list[Line]:
-    """A printed half-verse holds two recited lines (pādas): split at the word boundary nearest half the syllables."""
+    """A printed half-verse holds two recited lines (pādas): split at the word boundary nearest half the syllables.
+    A line that is already one pāda (the 11-syllable triṣṭubh, printed one pāda per line) stays whole (FR-RC-01)."""
     words = line.words
-    if len(words) < 2:
-        return [line]
     counts = [syllables(w.dev) for w in words]
+    if len(words) < 2 or sum(counts) <= PADA_MAX:
+        return [line]
     total, best, run = sum(counts), 1, 0
     for k in range(1, len(words)):
         run += counts[k - 1]

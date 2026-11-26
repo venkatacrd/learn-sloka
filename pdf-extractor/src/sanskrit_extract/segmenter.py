@@ -179,4 +179,26 @@ class Segmenter:
         flush_incomplete()
         if colophon is not None:
             units.append(Unit("heading", colophon, flags=["needs_review"]))  # never closed by `॥`
-        return units
+        return _join_misprinted_halves(units)
+
+
+def _join_misprinted_halves(units: list[Unit]) -> list[Unit]:
+    """A one-line verse closed by a bare `॥`, then a one-line numbered verse on the same page: one verse whose
+    half-verse `।` was misprinted as `॥` (Gita 13.34, FR-EX-09). An invocation `॥ ॐ … ॥` opens with `॥`; a half
+    never does."""
+    out: list[Unit] = []
+    for u in units:
+        half = out[-1] if out else None
+        if (
+            half is not None
+            and half.unit_type == u.unit_type == "verse"
+            and half.flags == ["unnumbered_verse"]
+            and u.verse_ref is not None
+            and len(half.lines) == len(u.lines) == 1
+            and half.lines[0].page == u.lines[0].page
+            and not half.lines[0].text.lstrip().startswith("॥")
+        ):
+            out[-1] = Unit("verse", half.lines + u.lines, verse_ref=u.verse_ref, flags=list(u.flags))
+        else:
+            out.append(u)
+    return out

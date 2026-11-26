@@ -1,6 +1,6 @@
 # 004 – Recitation Coach: Specification
 
-Status: Draft (2026-11-11) · Background, experiments and decisions: [brainstorm.md](brainstorm.md)
+Status: Draft (2026-11-11) · increment 1 built, increment 2 not started · Background, experiments and decisions: [brainstorm.md](brainstorm.md)
 Inputs: per-sloka teacher audio (feature 003) and per-sloka text (feature 002 `.romanized.jsonl`).
 
 ## Purpose
@@ -42,7 +42,7 @@ devices and feature areas come later, once the basics are accepted (see Phase 2)
 
 | ID | Requirement |
 |----|-------------|
-| FR-RC-01 | **Sloka library.** Built from a configured chapter: teacher audio folder (`output/mp3/<recording>/`, files `<name>_sloka_NN.mp3`) and the converter's `<doc>.romanized.jsonl` (Devanagari + IAST lines per verse, speaker line attached to the next verse, or inside a `split_by_speaker` verse). A sloka without audio or text is listed as unavailable, not hidden. |
+| FR-RC-01 | **Sloka library.** Built from the converted text (one chapter or a whole book, FR-RC-14) and the instructor audio: teacher audio folder (`output/mp3/<recording>/`, files `<name>_sloka_NN.mp3`) and the converter's `<doc>.romanized.jsonl` (Devanagari + IAST lines per verse, speaker line attached to the next verse, or inside a `split_by_speaker` verse). Every verse is shown as its 4 recited lines (pādas): a long printed line (a half-verse, > 13 syllables, as in the 8-syllable anuṣṭubh) is split in two at the word boundary nearest half its syllables; a short printed line (already one pāda, as in the 11-syllable triṣṭubh of chapter 11) is kept whole. A sloka without audio or text is listed as unavailable, not hidden. |
 | FR-RC-02 | **Learner profiles.** Create/select/rename a learner by display name; each has its own history folder. No passwords. Deleting a learner deletes their recordings and history after confirmation. |
 | FR-RC-03 | **Practice page.** A local web page (served on `127.0.0.1` only) shows learner, sloka picker, the sloka text in Devanagari, Telugu and IAST (each word converted from the Devanagari, so they line up word for word; a switch per script shows or hides it, all three on by default, at least one always on, the choice remembered in the browser; mistakes are marked in every visible script), teacher playback, and Record / Stop / Submit. Recording uses the browser microphone and is sent as 16 kHz mono 16-bit WAV (encoded in the page, no codec dependency). The page loads no external URLs. |
 | FR-RC-04 | **Recognition.** The recording is transcribed with the Su-śrotā ONNX model (preprocessor + CTC, greedy decoding). For every output token keep its time (40 ms frames) and its probability. |
@@ -53,15 +53,15 @@ devices and feature areas come later, once the basics are accepted (see Phase 2)
 | FR-RC-09 | **Accepted variants.** A per-chapter TOML list of equivalences that are not mistakes (e.g. `य` after `र` heard as `ज`), seeded with the rules from FR-RC-05 plus: `र्य` heard as `र्ज` (the reference reciter's own pronunciation of *ācārya*), and a final vowel held long at the end of a line (chanting convention: *janārdana* → *-nā*, *sañjaya* → *-yā*); a finding can be marked "this is acceptable" on the page, which adds it to the list after confirmation. |
 | FR-RC-10 | **Feedback view.** Overall score (% of expected letters said correctly), the sloka with each word coloured (correct / reported finding / unsure), and per finding a plain sentence in English with IAST, e.g. "*pāṇḍava*: heard **d** (dental) instead of **ḍ** (retroflex)". Buttons play the teacher's and the learner's audio for that word only; the teacher's word times come from transcribing the teacher audio once (cached). |
 | FR-RC-11 | **History.** Each submission is stored per learner: WAV, transcript, findings, score, timestamp, model version. The page shows attempts per sloka (score trend) and the learner's most frequent finding kinds. The learner can delete any attempt. |
-| FR-RC-12 | **CLI** `recite-check <recording> --sloka N [--chapter cfg] [--json]`: same pipeline, prints the findings (or JSON). Accepts WAV and MP3. Exit 0 = no reported findings, 1 = findings, 2 = usage/IO error. |
-| FR-RC-13 | **Setup.** `recite-setup` (and a root script `practice.sh`) downloads the model files once into a local model folder and verifies their SHA-256; `practice.sh` starts the server and opens the page; `--text` / `--audio` take a path or a short name (`output/pdf/<name>/romanized/`, `output/mp3/<name>/`), and without them the only text / audio folder present is used (several → error listing the choices). Model files are not in git. |
+| FR-RC-12 | **CLI** `recite-check <recording> --text <file.romanized.jsonl> --sloka N [--chapter C] [--audio <folder>] [--json] [--show-unsure]`: same pipeline, prints the findings (or JSON). Accepts WAV, MP3 and FLAC. Exit 0 = no reported findings, 1 = findings, 2 = usage/IO error. |
+| FR-RC-13 | **Setup.** `recite-setup` (and a root script `practice.sh`) downloads the model files once into a local model folder and verifies their SHA-256; `practice.sh` starts the server and opens the page; `--text` / `--audio` take a path or a short name (`output/pdf/<name>/romanized/`, `output/mp3/<name>/`), and without `--text` the only converted text present is used (several → error listing the choices); without `--audio` all of `output/mp3/` is used, one folder per chapter (FR-RC-14), and with no audio at all the page runs without instructor audio. Model files are not in git. |
 | FR-RC-14 | **Whole book, all chapters.** The text may be a whole book's `.romanized.jsonl`: it is split into chapters where the verse number restarts; a part opened by a heading `॥ अथ <ordinal>ोऽध्यायः ॥` is chapter <ordinal> (प्रथम = 1 … अष्टादश = 18) with the following `…योगः` heading as its title; other parts (e.g. Gītā Māhātmya) are left out; a text without such headings is one chapter per part, numbered 1, 2, …. The audio may be one folder of sloka MP3s (single chapter) or a folder of per-chapter folders, matched by the chapter number in the folder name (`1_Ch 02 Complete`, `1_CH 10 Complete`) or in the file names (`CH02_sloka_01.mp3`). A chapter whose number of instructor sloka files differs from its number of slokas keeps its audio but is marked, and the page warns that sloka N's audio may be a different verse. The page has a chapter picker and moves across chapters with ‹ ›; the API takes chapter and sloka (`/api/chapters`, `/api/sloka/C/N`, `/audio/C/N`, `POST /api/check/C/N`); `recite-check --chapter C` (optional when there is one chapter). |
 
 ## Non-functional requirements
 
 | ID | Requirement |
 |----|-------------|
-| NFR-RC-01 | **Offline at runtime**: no network access after setup; server bound to `127.0.0.1`; page has no external scripts, fonts or URLs. |
+| NFR-RC-01 | **Offline at runtime**: no network access after setup; server bound to `127.0.0.1`; page has no external scripts, fonts or URLs. The server answers only requests whose `Host` is `127.0.0.1` or `localhost` (others → 403), so another web site cannot reach it through the browser. |
 | NFR-RC-02 | Feedback for a ≤ 30 s recording in ≤ 5 s on the author's Mac (model alone ~0.03× real time). |
 | NFR-RC-03 | Deterministic: same recording + same model + same settings ⇒ identical findings. |
 | NFR-RC-04 | Recordings and history stay on the machine, in a git-ignored data folder; nothing is uploaded. |
@@ -80,19 +80,19 @@ devices and feature areas come later, once the basics are accepted (see Phase 2)
 | AC-RC-07 | A finding listed in the accepted-variants file is not reported; marking a finding acceptable on the page adds exactly that equivalence. | FR-RC-09 |
 | AC-RC-08 | Word playback: for a finding on *pāṇḍava*, the learner clip and teacher clip each start within 0.2 s of that word in their recordings. | FR-RC-10 |
 | AC-RC-09 | `recite-check "take 1 - fail.mp3" --sloka 1 --json` → valid JSON with the same findings as the page; exit 1. A correct teacher recording → exit 0. | FR-RC-12 |
-| AC-RC-10 | With network blocked after setup, practice and CLI work; the served page contains no `http://`/`https://` URL except `127.0.0.1`. | NFR-RC-01 |
+| AC-RC-10 | With network blocked after setup, practice and CLI work; the served page contains no `http://`/`https://` URL except `127.0.0.1`; a request with `Host: evil.example` → 403. | NFR-RC-01 |
 | AC-RC-11 | Same WAV submitted twice → identical findings JSON. | NFR-RC-03 |
 | AC-RC-12 | `recite-setup` with a corrupted model file → checksum error, exit 2; with correct files → no download on the second run. | FR-RC-13 |
 | AC-RC-13 | A book JSONL with headings `अथ प्रथमोऽध्यायः` and `अथ द्वितीयोऽध्यायः` and a trailing Māhātmya part → chapters 1 and 2 only, each verse 1 with its own speaker line, titles from the `…योगः` headings; an audio root with folders `1_Ch 01 Complete` (as many files as slokas) and `1_CH 02 Complete` (one file fewer) → both attached, chapter 2 marked `audio_matches = false`; a text without chapter headings → one chapter numbered 1. | FR-RC-14 |
 | AC-RC-14 | Server: `/api/chapters` lists both chapters with titles and per-sloka availability; `/api/sloka/2/1` carries the audio warning; `/audio/2/1` serves chapter 2's file; `POST /api/check/2/1` returns `chapter: 2`; unknown chapter → 404. | FR-RC-14 |
 | AC-RC-15 | `/api/sloka/C/N` lines carry `dev`, `telugu` and `iast` with the same number of words (`धृतराष्ट्र उवाच` → `ధృతరాష్ట్ర ఉవాచ`); the page has the three script switches, all checked by default. | FR-RC-03 |
+| AC-RC-16 | A verse printed as 2 lines of 16 syllables → 4 lines of 8; a verse printed as 4 lines of 11 syllables (`द्रोणं च भीष्मं च जयद्रथं च` …, chapter 11 verse 34) → the same 4 lines, unsplit; reference book: every verse in chapters 1–18 has 4 pādas. | FR-RC-01 |
 
 ## Phase 2 (after acceptance by the family)
 
 - More users / devices: other machines or phones on the home network; per-learner settings.
 - Melody / chanting-tune and rhythm feedback (pitch contour vs teacher; laghu/guru timing).
 - Vowel-length checks by duration (in addition to the letters the model hears).
-- More chapters (needs teacher recordings); automatic chapter setup from the feature 001–003 outputs.
 - Practice plans: suggest the slokas or sounds to repeat, based on history.
 - Optional richer feedback wording; anything online only if explicitly accepted (constitution 12).
 - Before sharing outside the family: an explicit licence from the model author.

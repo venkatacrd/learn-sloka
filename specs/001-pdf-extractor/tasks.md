@@ -3,7 +3,7 @@
 Rules: do tasks in order; each task = failing test(s) first, then code; a task is done when its tests pass,
 `ruff` + `mypy` pass, and no other test broke. `[P]` = can run in parallel with the previous task.
 
-**Status (2026-11-08):** EX-T01–T16 implemented in [pdf-extractor/](../../pdf-extractor/); 76 tests pass.
+**Status (2026-11-23):** EX-T01–T25 implemented in [pdf-extractor/](../../pdf-extractor/); 111 tests pass, 10 skip when the reference PDFs are absent.
 Open: AC-EX-04 (OCR CER) and the gold-text comparison wait for Tesseract (`brew install tesseract tesseract-lang`)
 and the gold files (Q1b).
 
@@ -24,6 +24,7 @@ and the gold files (Q1b).
 | EX-T13 | `cli.py`: full options, batch, exit codes | FR-EX-01, 15 | AC-EX-01 | T12 |
 | EX-T14 | Performance check on a 200-page sample | NFR-EX-03, 04 | `@slow` benchmark test | T13 |
 | EX-T15 | README for the package (usage, install tesseract + language models, config reference) | – | – | T16 |
+| EX-T16 | `ocr/doctor.py` install check, `ocr/preprocess.py`, OCR cache, `--dry-run`; offline guard test | FR-EX-04, 17, 18, NFR-EX-05 | AC-EX-13, 14, 15, 16 | T07, T13 |
 | EX-T17 | Coverage audit in report | FR-EX-19 | AC-EX-19 | T12 |
 | EX-T18 | OCR cross-check of non-OCR units (`verify.py`), report block, `--verify-ocr` | FR-EX-20 | AC-EX-20, AC-EX-21 | T16, T17 |
 | EX-T19 | Per-line OCR on legacy pages; heading rule by width; TOC lines; table 1.1.0 (full Gita PDF) | FR-EX-02, 05, 09 | AC-EX-22, AC-EX-23 | T18 |
@@ -32,7 +33,7 @@ and the gold files (Q1b).
 | EX-T22 | Page selection: open-ended ranges, missing pages reported, `pages_selected` | FR-EX-21 | AC-EX-26 | T21 |
 | EX-T23 | Heading centring against the odd/even text frame (titles on odd pages of the reference book were read into verse 1) | FR-EX-09 | AC-EX-28 | T19 |
 | EX-T24 | Speaker lines with `उवाच` joined by sandhi (`भगवानुवाच`) | FR-EX-09 | AC-EX-29 | T23 |
-| EX-T16 | `ocr/doctor.py` install check, `ocr/preprocess.py`, OCR cache, `--dry-run`; offline guard test | FR-EX-04, 17, 18, NFR-EX-05 | AC-EX-13, 14, 15, 16 | T07, T13 |
+| EX-T25 | Join a half-verse misprinted with `॥` to the numbered half that follows (Gita 13.34) | FR-EX-09 | AC-EX-30 | T24 |
 
 Definition of done for feature 001: all AC-EX-xx tests green, traceability table below complete.
 

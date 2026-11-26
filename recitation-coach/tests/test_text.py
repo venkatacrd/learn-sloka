@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from recite_coach.compare import compare
 from recite_coach.feedback import letters_iast, to_json
 from recite_coach.library import load_book, load_chapter
 from recite_coach.normalize import chars_of, comparison_form, text_of
-from tests.conftest import AUDIO, TEXT, heard
+from tests.conftest import AUDIO, TEXT, heard, unit
 
 
 def norm(s: str) -> str:
@@ -34,6 +35,42 @@ def test_AC_RC_01_library_padas_and_speakers(chapter: Path) -> None:
     assert one[1].dev == "धर्मक्षेत्रे कुरुक्षेत्रे" and one[4].iast == "kimakurvata sañjaya"
     assert [(ln.pada, ln.speaker) for ln in s[21].lines] == [(1, False), (2, False), (0, True), (3, False), (4, False)]
     assert not s[1].available  # no audio folder given
+
+
+TRISHTUBH = (  # chapter 11 verse 34: printed one pāda (11 syllables) per line
+    ["द्रोणं च भीष्मं च जयद्रथं च", "कर्णं तथाऽन्यानपि योधवीरान् ।", "मया हतांस्त्वं जहि मा व्यथिष्ठाः",
+     "युध्यस्व जेतासि रणे सपत्नान् ॥ ३४ ॥"],
+    ["droṇaṃ ca bhīṣmaṃ ca jayadrathaṃ ca", "karṇaṃ tathā'nyānapi yodhavīrān |", "mayā hatāṃstvaṃ jahi mā vyathiṣṭhāḥ",
+     "yudhyasva jetāsi raṇe sapatnān || 34 ||"],
+)  # fmt: skip
+
+
+def test_AC_RC_16_four_padas(tmp_path: Path) -> None:
+    rows = [
+        unit("verse", ["धर्मक्षेत्रे कुरुक्षेत्रे समवेता युयुत्सवः ।", "मामकाः पाण्डवाश्चैव किमकुर्वत सञ्जय ॥ १ ॥"],
+             ["dharmakṣetre kurukṣetre samavetā yuyutsavaḥ |", "māmakāḥ pāṇḍavāścaiva kimakurvata sañjaya || 1 ||"],
+             "1"),
+        unit("verse", *TRISHTUBH, "34"),
+    ]  # fmt: skip
+    p = tmp_path / "ch.romanized.jsonl"
+    p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    s = load_chapter(p, None)
+    assert [ln.dev for ln in s[1].lines] == ["धर्मक्षेत्रे कुरुक्षेत्रे", "समवेता युयुत्सवः", "मामकाः पाण्डवाश्चैव",
+                                              "किमकुर्वत सञ्जय"]  # fmt: skip
+    assert [ln.pada for ln in s[34].lines] == [1, 2, 3, 4]
+    assert s[34].lines[0].dev == "द्रोणं च भीष्मं च जयद्रथं च"
+    assert s[34].lines[3].iast == "yudhyasva jetāsi raṇe sapatnān"
+
+
+@pytest.mark.skipif(TEXT is None, reason="book text (output/pdf/) not present")
+def test_AC_RC_16_reference_book_four_padas() -> None:
+    assert TEXT is not None
+    book = load_book(TEXT, None)
+    assert sorted(book) == list(range(1, 19))
+    odd = [(c, n, [ln.dev for ln in s.lines if not ln.speaker]) for c, ch in book.items() for n, s in ch.slokas.items()
+           if sum(not ln.speaker for ln in s.lines) != 4]  # fmt: skip
+    assert not odd, odd[:5]
+    assert book[11].slokas[34].lines[0].dev == "द्रोणं च भीष्मं च जयद्रथं च"
 
 
 @pytest.mark.skipif(TEXT is None or not AUDIO.is_dir(), reason="book text (output/pdf/) or chapter 1 audio not present")

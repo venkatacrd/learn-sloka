@@ -41,17 +41,17 @@ which line ends the half-verse; plain segment counting would drift whenever a sp
 | FR-AS-02 | Detect speech segments: 10 ms RMS energy; silence threshold = median level of non-silent frames − `silence_drop_db` (default 20 dB); pauses shorter than `min_gap_s` (0.3 s) do not split a segment; segments shorter than `min_segment_s` (0.3 s, clicks/breaths) are ignored. |
 | FR-AS-03 | For each segment, estimate the pitch of its last `tail_s` (0.4 s) by autocorrelation (70–400 Hz). Split segments into *cadence* / *continuation* with a two-group threshold (Otsu) on these pitches. If the two groups are less than `min_cadence_separation_st` (2 semitones) apart, report `no_cadence_pattern` and fail. |
 | FR-AS-04 | Group: each half-verse has one cadence line. `half_verse_end` says which line ends the half-verse: `cadence` (that line) or `next` (the line after it). `auto` (default) decides per file: for each cadence compare the pause after it with the pause after the next line (differences < 0.03 s do not count); the half-verse end has the longer pause. If fewer than 60 % agree → warning `half_verse_end_uncertain`. A sloka ends at the half-verse end of every `half_verses_per_sloka`-th cadence (default 2). Sloka 1 starts at the first line of the first half-verse; everything earlier is the **intro**. Every later sloka starts right after the previous one (so a speaker line belongs to the sloka it introduces). Everything after the last sloka is the **closing**. A pause shorter than 0.75 × the median pause inside a half-verse is a breath within one line and never ends a sloka. An odd number of cadences gives a last sloka with one half-verse and warning `incomplete_last_sloka`. |
-| FR-AS-05 | Cut points lie at the middle of the pause after the sloka's last cadence (intro cut: middle of the pause before sloka 1), rounded to the nearest MP3 frame. |
+| FR-AS-05 | Cut points lie at the middle of the pause after the line that ends the sloka's last half-verse (the cadence line or the line after it, FR-AS-04) (intro cut: middle of the pause before sloka 1), rounded to the nearest MP3 frame. |
 | FR-AS-06 | Cutting is **lossless**: output files are copies of whole MP3 frames of the source (no decoding/re-encoding). ID3/APE tags and a Xing/Info/VBRI header frame of the source are not copied. |
 | FR-AS-07 | Each output gets a fresh ID3v2.3 tag: title (`Sloka 1`, `Intro`, `Closing`), track (`n/N`, slokas only), album = source file name. |
 | FR-AS-08 | Output names: `<stem>_intro.mp3`, `<stem>_sloka_NN.mp3` (zero-padded to the sloka count's width, min 2), `<stem>_closing.mp3`; `<stem>` = source file stem with spaces → `_`, or the value of `--name <stem>` (letters, digits, `_`, `-`, `.`; not starting with `.`), e.g. `--name CH11` → `CH11_sloka_01.mp3`, `CH11.splits.json`. `--name` with more than one input file, or an invalid name → exit 2, nothing written. Intro/closing are written only if non-empty. |
 | FR-AS-09 | Write `<stem>.splits.json` (source, settings, chosen `half_verse_end` and its vote, every part with kind, number, start/end/duration seconds, frame range, segment and cadence counts, warnings) and `<stem>.labels.txt` (Audacity label track: `start\tend\tname`). |
 | FR-AS-10 | `--expected N`: if the number of slokas found differs from N, add warning `count_mismatch` and exit 1 (files are still written for inspection). |
 | FR-AS-11 | `--clean`: delete everything inside the output folder before the run. Refused (exit 2) if the output folder is the filesystem root, the home folder, or contains/equals the folder of an input file. |
-| FR-AS-12 | CLI: `sloka-split <input> -o <outdir> [--clean] [--expected N] [--name STEM] [--half-verses-per-sloka 2] [--half-verse-end auto\|cadence\|next] [--silence-drop-db 20] [--min-gap 0.3]`. Exit 0 ok, 1 warnings that mean the split is doubtful (`count_mismatch`, `no_cadence_pattern`, `incomplete_last_sloka`, `half_verse_end_uncertain`, `coverage_failed`), 2 usage/IO error. |
+| FR-AS-12 | CLI: `sloka-split <input> [-o <outdir>] [--text FILE] [--clean] [--expected N] [--name STEM] [--half-verses-per-sloka 2] [--half-verse-end auto\|cadence\|next] [--silence-drop-db 20] [--min-gap 0.3]`; `-o` defaults to `audio-outs`. Exit 0 ok, 1 warnings that mean the split is doubtful (`count_mismatch`, `no_cadence_pattern`, `incomplete_last_sloka`, `half_verse_end_uncertain`, `coverage_failed`), 2 usage/IO error. |
+| FR-AS-13 | Root script `split-audio.sh [<mp3-or-folder>] [outdir]` always cleans the output folder, then splits. Repository layout: recordings live in `input/mp3/` (a bare file name is looked up there; no input = every MP3 in it) and each recording's parts go to its own folder `output/mp3/<stem>/` unless an output folder is given. |
 | FR-AS-14 | Write `<stem>.review.html`: a self-contained offline page (no network) listing every part with its time range, an audio player, buttons that play only the first / last 5 s, and status buttons (OK, ends too early, ends too late, starts wrong, other) plus a note. Shows progress, filters (all / unchecked / problems), optional auto-play of the next part, keyboard shortcuts, keeps the review in the browser's local storage, and exports the findings as `<stem>.review-findings.json` (`file`, `number`, `status`, `note` per part). |
 | FR-AS-15 | `--text <file.romanized.jsonl>` (output of feature 002): the review page shows each sloka's Devanagari and IAST lines (verse *n* ↔ sloka *n*), with a preceding speaker line shown above its sloka. Without `--text` the page works without text. Unreadable text file → warning `text_unreadable`, not fatal. |
-| FR-AS-13 | Root script `split-audio.sh [<mp3-or-folder>] [outdir]` always cleans the output folder, then splits. Repository layout: recordings live in `input/mp3/` (a bare file name is looked up there; no input = every MP3 in it) and each recording's parts go to its own folder `output/mp3/<stem>/` unless an output folder is given. |
 
 ## Non-functional requirements
 
@@ -78,15 +78,17 @@ which line ends the half-verse; plain segment counting would drift whenever a sp
 | AC-AS-10 | *(e2e, skipped if the file is absent)* `1_Ch 01 Complete.mp3 --expected 47` → 47 slokas + intro + closing, `half_verse_end = next`, exit 0, < 10 s. | all, NFR-AS-04 |
 | AC-AS-11 | Synthetic chant with falling pitch on lines 1 and 3 and longer pauses after lines 2 and 4 (plus a breath-split line 4) → `auto` picks `next`; every sloka contains all 4 lines. Same chant with the reference style → `auto` picks `cadence`. | FR-AS-04 |
 | AC-AS-12 | `--half-verse-end` overrides `auto` and changes the cuts. | FR-AS-04, 12 |
+| AC-AS-13 | Equal pauses after every line → warning `half_verse_end_uncertain`. | FR-AS-04 |
 | AC-AS-14 | Review page exists, references every written MP3, embeds no external URLs; with `--text`, sloka 2 shows its speaker line and verse 2's lines; without it, no text block. | FR-AS-14, 15 |
 | AC-AS-15 | `--name CH9` → `CH9_intro.mp3`, `CH9_sloka_01…05.mp3`, `CH9_closing.mp3`, `CH9.splits.json`, `CH9.labels.txt`, `CH9.review.html`; album tag still the source file name. `--name` on a folder with two MP3s, or `--name ../x` → exit 2, output folder empty. | FR-AS-08, 12 |
-| AC-AS-13 | Equal pauses after every line → warning `half_verse_end_uncertain`. | FR-AS-04 |
 
 ## Known limits (Phase 2 candidates)
 
 - Assumes the reciter's half-verse cadence is clearly lower than the pāda continuation. Other chant styles may need
   a different cue; FR-AS-03 fails loudly instead of guessing.
-- Verses with 3 half-verses (6 pādas, e.g. some in chapters 1–18 other than ch. 1) shift the pairing; `--expected`
-  detects this. Aligning to the extracted text (feature 001 output) could fix it.
+- On the reference recordings, 11 of the 18 chapters split into a different number of parts than the book has
+  slokas (chapters 2, 5–10, 13, 15, 17, 18; e.g. chapter 2: 67 parts for 72 slokas). Verses with 3 half-verses
+  (6 pādas) shift the pairing, and other chant patterns may too. `--expected` detects a wrong count and the review
+  page helps find where. Aligning to the extracted text (feature 001 output) could fix it.
 - The first frame of each part may borrow from the previous frame's bit reservoir; since cuts are in pauses this is
   inaudible.

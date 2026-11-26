@@ -113,3 +113,17 @@ def test_AC_EX_29_speaker_with_joined_uvaca() -> None:
         )
         assert [u.unit_type for u in units] == ["speaker", "verse"], speaker
         assert len(units[1].lines) == 2
+
+
+def test_AC_EX_30_half_verse_misprinted_with_double_danda() -> None:
+    first, second = "क्षेत्रक्षेत्रज्ञयोरेवम् अन्तरं ज्ञानचक्षुषा ॥", "भूतप्रकृतिमोक्षं च ये विदुर्यान्ति ते परम् ॥ ३४ ॥"
+    units = Segmenter(Profile()).segment([_page([first, second])])
+    assert [u.unit_type for u in units] == ["verse"]
+    assert len(units[0].lines) == 2 and units[0].verse_ref == {"label": "॥ ३४ ॥", "normalized": "34"}
+    assert "unnumbered_verse" not in units[0].flags
+    # stays separate: an invocation line, and a whole (2-line) unnumbered verse
+    units = Segmenter(Profile()).segment([_page(["॥ ॐ श्री परमात्मने नमः ॥", second])])
+    assert len(units) == 2 and units[0].flags == ["unnumbered_verse"]
+    whole = ["वसुदेवसुतं देवं कंसचाणूरमर्दनम् ।", "देवकीपरमानन्दं कृष्णं वन्दे जगद्गुरुम् ॥"]
+    units = Segmenter(Profile()).segment([_page([*whole, second])])
+    assert [len(u.lines) for u in units] == [2, 1]

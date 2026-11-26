@@ -131,7 +131,8 @@ keep working.
     (`REPORT_MIN_PROB` 0.4; a dropped visarga is always unsure).
   - `feedback` turns findings into IAST sentences + JSON.
 - **Library:**
-  - `library` splits each printed half-verse into two pādas by syllables.
+  - `library` shows every verse as 4 pādas: a printed half-verse (> 13 syllables) is split in two by syllables; a
+    printed line that is already one pāda (the 11-syllable triṣṭubh in chapter 11) is kept whole.
   - `load_book` splits a whole book into chapters: a new chapter starts where the verse number restarts, and its
     number comes from the `अथ <ordinal>ोऽध्यायः` heading (non-chapter parts are dropped).
   - It matches each `output/mp3/*Ch NN*` folder to its chapter and flags chapters whose audio part count differs from
